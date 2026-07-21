@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Offer Letter Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f0f0f0; font-family: 'Times New Roman', Times, serif; }
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 20px auto;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      position: relative;
+      padding: 0;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      position: relative;
+      width: 100%;
+      padding-top: 0px;
+    }
+    .header-top {
+      position: relative;
+      height: 50px;
+      margin-left: 55px;
+      overflow: hidden;
+    }
+    .header-top-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #2d2d2d;
+      clip-path: polygon(30px 0, 100% 0, 100% 100%, 85px 100%);
+    }
+    .header-top-content {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      height: 100%;
+      padding: 0 15px 0 80px;
+    }
+    .header-logo {
+      position: absolute;
+      left: 12px;
+      top: -2px;
+      width: 95px;
+      height: 95px;
+      z-index: 10;
+    }
+    .logo-circle {
+      width: 95px;
+      height: 95px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .logo-circle img {
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+    }
+    .header-company-name {
+      flex: 1;
+      text-align: right;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 14.5pt;
+      font-weight: 900;
+      color: #e8a83e;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      padding-left: 20px;
+    }
+    .header-cin-bar {
+      position: relative;
+      height: 26px;
+      margin-left: 55px;
+      margin-top: 0px;
+    }
+    .header-cin-bar-bg {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      right: 0;
+      bottom: 0;
+      background: #c8943e;
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 30px 100%);
+    }
+    .header-cin {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      height: 100%;
+      padding-right: 25px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12pt;
+      font-weight: 900;
+      color: #1a1a1a;
+      letter-spacing: 0.5px;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+    .footer-line {
+      border-top: 2.5px solid #2d2d2d;
+      margin: 0 18px;
+    }
+    .footer-content {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 6px 22px 4px;
+      font-size: 8.5pt;
+      color: #333;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .footer-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+    }
+    .footer-item.address { max-width: 40%; line-height: 1.3; }
+    .footer-item a { color: #2456a4; text-decoration: underline; }
+    .footer-bar {
+      height: 20px;
+      margin-top: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+    .footer-bar-gold {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 38%;
+      height: 100%;
+      background: #c8943e;
+      clip-path: polygon(0 0, 85% 0, 100% 100%, 0 100%);
+    }
+    .footer-bar-dark {
+      position: absolute;
+      left: 24%;
+      bottom: 0;
+      width: 76%;
+      height: 100%;
+      background: #2d2d2d;
+      clip-path: polygon(14% 0, 100% 0, 100% 100%, 0 100%);
+    }
+
+    /* ===== CONTENT ===== */
+    .content {
+      padding: 15px 30px 80px;
+      font-size: 11pt;
+      line-height: 1.55;
+      color: #000;
+      position: relative;
+    }
+
+    .watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      opacity: 0.22;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .watermark img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-logo">
+      <div class="logo-circle">
+        <img src="/logo.png" alt="NSM" />
+      </div>
+    </div>
+    <div class="header-top">
+      <div class="header-top-bg"></div>
+      <div class="header-top-content">
+        <div class="header-company-name">
+          NILKANTA MANAGEMENT SERIVICES PRIVATE LIMITED
+        </div>
+      </div>
+    </div>
+    <div class="header-cin-bar">
+      <div class="header-cin-bar-bg"></div>
+      <div class="header-cin">CIN: U70200TS2025PTC198036</div>
+    </div>
+    <div style="border-bottom: 2.5px solid #2d2d2d; margin-top: 12px;"></div>
+  </div>
+
+  <!-- WATERMARK -->
+  <div class="watermark">
+    <img src="/logo.png" alt="" />
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <h2 style="text-align:center; text-decoration:underline; margin:15px 0;">CONTRACT EMPLOYMENT LETTER</h2>
+    <p style="text-align:right; font-weight:bold;">Date: 12/07/2026</p>
+    <br/>
+    <p><b>Employee Code:</b> EMP021</p>
+    <br/>
+    <p><b>Name:</b> Shivasaiprasad Akula</p>
+    <p><b>Address:</b> Hyderabad, Telangana</p>
+    <br/>
+    <p style="text-decoration:underline; font-weight:bold;">Dear : Shivasaiprasad Akula</p>
+    <br/>
+    <p style="text-align:justify;">We are pleased to appoint you in our organization as <b>Software Engineer</b> subject to the following terms and conditions:</p>
+    <br/>
+    <p>[ ... letter content goes here ... ]</p>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-line"></div>
+    <div class="footer-content">
+      <div class="footer-item address">
+        <svg width="14" height="18" viewBox="0 0 24 30" fill="#2d2d2d"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 18 12 18s12-9 12-18C24 5.4 18.6 0 12 0zm0 16c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z"/></svg>
+        <span>H.No.12-10-409/25/1, Bidal Basti, Sitaphalmandi, Secunderabad, Hyderabad,500061 TG.</span>
+      </div>
+      <div class="footer-item" style="flex-direction:column;align-items:flex-end;text-align:right;">
+        <div style="display:flex;align-items:center;gap:5px;">
+          <svg width="16" height="13" viewBox="0 0 24 18" fill="none" stroke="#2d2d2d" stroke-width="2"><rect x="1" y="1" width="22" height="16" rx="2"/><polyline points="1,1 12,10 23,1"/></svg>
+          <a href="mailto:nilkantamanpower@gmail.com">nilkantamanpower@gmail.com</a>
+        </div>
+        <div style="margin-top:2px;">GST NO. <b>36AAKCN4393E1Z8</b></div>
+      </div>
+    </div>
+    <div class="footer-bar">
+      <div class="footer-bar-gold"></div>
+      <div class="footer-bar-dark"></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

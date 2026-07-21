@@ -1,0 +1,404 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+
+export default function UsersPage() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [sortField, setSortField] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
+
+  // Password modal state
+  const [passwordModal, setPasswordModal] = useState({ open: false, userId: null, userName: "" });
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: page.toString(), limit: perPage.toString(), sortField, sortOrder });
+      if (search) params.set("search", search);
+      const res = await fetch(`/api/users?${params}`);
+      const data = await res.json();
+      setUsers(data.users || []);
+      setPagination(data.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, perPage, sortField, sortOrder]);
+
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => { setSearch(searchInput); setPage(1); }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  async function handleDelete(id, name) {
+    if (!confirm(`Are you sure you want to delete user "${name}"?`)) return;
+    try {
+      const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+      if (res.ok) fetchUsers();
+    } catch (err) { console.error(err); }
+  }
+
+  function openPasswordModal(id, name) {
+    setPasswordModal({ open: true, userId: id, userName: name });
+    setNewPassword("");
+    setPasswordError("");
+  }
+
+  async function handlePasswordUpdate(e) {
+    e.preventDefault();
+    setPasswordError("");
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      const res = await fetch(`/api/users/${passwordModal.userId}/password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setPasswordError(data.error || "Failed to update password");
+      } else {
+        setPasswordModal({ open: false, userId: null, userName: "" });
+      }
+    } catch (err) {
+      setPasswordError("Something went wrong");
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
+
+  function handleSort(field) {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+    setPage(1);
+  }
+
+  function SortIcon({ field }) {
+    const isActive = sortField === field;
+    return (
+      <span className="inline-flex flex-col ml-1 -space-y-0.5">
+        <svg className="w-3 h-3" viewBox="0 0 10 6" fill="none">
+          <path d="M1 4.5L5 1L9 4.5" stroke={isActive && sortOrder === "asc" ? "var(--primary)" : "var(--text-muted)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <svg className="w-3 h-3" viewBox="0 0 10 6" fill="none">
+          <path d="M1 1.5L5 5L9 1.5" stroke={isActive && sortOrder === "desc" ? "var(--primary)" : "var(--text-muted)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </span>
+    );
+  }
+
+  const { total, totalPages } = pagination;
+  const startRecord = total === 0 ? 0 : (page - 1) * perPage + 1;
+  const endRecord = perPage === 0 ? total : Math.min(page * perPage, total);
+
+  function getPageNumbers() {
+    const pages = [];
+    const maxVisible = 5;
+    let start = Math.max(1, page - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Users</h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{total} total users</p>
+        </div>
+        <Link href="/users/new" className="btn-primary px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add User
+        </Link>
+      </div>
+
+      <div className="keka-card overflow-hidden">
+        {/* Search + Per page */}
+        <div className="p-4 border-b flex items-center justify-between flex-wrap gap-3" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="relative max-w-sm flex-1 min-w-[200px]">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search by name, username, email..."
+              className="w-full pl-10 pr-4 py-2 rounded-lg text-sm outline-none"
+              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+              onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.background = 'var(--bg-card)'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.background = 'var(--bg-input)'; }}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>Per page:</label>
+            <select value={perPage} onChange={(e) => { setPerPage(parseInt(e.target.value)); setPage(1); }}
+              className="px-3 py-2 rounded-lg text-sm outline-none" style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-card)' }}>
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={0}>All</option>
+            </select>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[800px]">
+              <thead>
+                <tr style={{ background: 'var(--bg-header)', borderBottom: '1px solid var(--border-color)' }}>
+                  <th className="text-left px-5 py-3"><div className="h-3 w-20 rounded bg-gray-200"></div></th>
+                  <th className="text-left px-5 py-3"><div className="h-3 w-16 rounded bg-gray-200"></div></th>
+                  <th className="text-left px-5 py-3"><div className="h-3 w-24 rounded bg-gray-200"></div></th>
+                  <th className="text-left px-5 py-3"><div className="h-3 w-20 rounded bg-gray-200"></div></th>
+                  <th className="text-center px-5 py-3"><div className="h-3 w-14 rounded bg-gray-200 mx-auto"></div></th>
+                  <th className="text-right px-5 py-3"><div className="h-3 w-14 rounded bg-gray-200 ml-auto"></div></th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(perPage || 10)].map((_, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                    <td className="px-5 py-4"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-gray-200 animate-pulse"></div><div className="space-y-2"><div className="h-3.5 w-28 rounded bg-gray-200 animate-pulse"></div><div className="h-2.5 w-16 rounded bg-gray-100 animate-pulse"></div></div></div></td>
+                    <td className="px-5 py-4"><div className="h-3.5 w-20 rounded bg-gray-200 animate-pulse"></div></td>
+                    <td className="px-5 py-4"><div className="h-3.5 w-32 rounded bg-gray-200 animate-pulse"></div></td>
+                    <td className="px-5 py-4"><div className="h-3.5 w-20 rounded bg-gray-200 animate-pulse"></div></td>
+                    <td className="px-5 py-4"><div className="h-5 w-14 rounded-full bg-gray-200 animate-pulse mx-auto"></div></td>
+                    <td className="px-5 py-4"><div className="flex items-center justify-end gap-2"><div className="w-7 h-7 rounded bg-gray-200 animate-pulse"></div><div className="w-7 h-7 rounded bg-gray-200 animate-pulse"></div><div className="w-7 h-7 rounded bg-gray-200 animate-pulse"></div></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{search ? `No users found for "${search}"` : "No users added yet"}</p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto hidden md:block">
+              <table className="w-full min-w-[800px]">
+                <thead>
+                  <tr style={{ background: 'var(--bg-header)', borderBottom: '1px solid var(--border-color)' }}>
+                    <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition" style={{ color: 'var(--text-secondary)' }} onClick={() => handleSort("firstName")}>
+                      <span className="inline-flex items-center">User<SortIcon field="firstName" /></span>
+                    </th>
+                    <th className="text-center px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition" style={{ color: 'var(--text-secondary)' }} onClick={() => handleSort("userType")}>
+                      <span className="inline-flex items-center">User Type<SortIcon field="userType" /></span>
+                    </th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition" style={{ color: 'var(--text-secondary)' }} onClick={() => handleSort("username")}>
+                      <span className="inline-flex items-center">Username<SortIcon field="username" /></span>
+                    </th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition" style={{ color: 'var(--text-secondary)' }} onClick={() => handleSort("email")}>
+                      <span className="inline-flex items-center">Email<SortIcon field="email" /></span>
+                    </th>
+                    <th className="text-center px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition" style={{ color: 'var(--text-secondary)' }} onClick={() => handleSort("isActive")}>
+                      <span className="inline-flex items-center justify-center">Status<SortIcon field="isActive" /></span>
+                    </th>
+                    <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user, i) => {
+                    const initials = `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase();
+                    const colors = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6'];
+                    const avatarColor = colors[((page - 1) * perPage + i) % colors.length];
+                    return (
+                      <tr key={user._id} className="transition hover:bg-[var(--bg-header)]" style={{ borderBottom: '1px solid var(--border-light)' }}>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: avatarColor }}>
+                              {initials}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{user.firstName} {user.lastName}</p>
+                              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.phone || "—"}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-center">
+                          {(() => {
+                            const type = (user.userType || user.user_type || "RECRUITER").toUpperCase();
+                            const isAdmin = type === "ADMIN";
+                            return (
+                              <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold" style={{
+                                background: isAdmin ? 'var(--bg-input)' : '#fff7ed',
+                                color: isAdmin ? 'var(--primary)' : '#ea580c',
+                              }}>{isAdmin ? "Admin" : "Recruiter"}</span>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-5 py-4 text-sm font-mono" style={{ color: 'var(--text-on-card)' }}>{user.username}</td>
+                        <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-secondary)' }}>{user.email}</td>
+                        <td className="px-5 py-4 text-center">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium" style={{
+                            background: user.isActive ? '#ecfdf5' : '#fef2f2',
+                            color: user.isActive ? '#059669' : '#dc2626',
+                          }}>
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: user.isActive ? '#10b981' : '#ef4444' }}></span>
+                            {user.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Link href={`/users/${user._id}`} className="p-2 rounded-lg transition hover:bg-indigo-50" title="Edit">
+                              <svg className="w-4 h-4" style={{ color: 'var(--primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </Link>
+                            <button onClick={() => openPasswordModal(user._id, `${user.firstName} ${user.lastName}`)} className="p-2 rounded-lg transition hover:bg-amber-50" title="Update Password">
+                              <svg className="w-4 h-4" style={{ color: '#f59e0b' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                              </svg>
+                            </button>
+                            <button onClick={() => handleDelete(user._id, `${user.firstName} ${user.lastName}`)} className="p-2 rounded-lg transition hover:bg-red-50" title="Delete">
+                              <svg className="w-4 h-4" style={{ color: 'var(--danger)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-light)' }}>
+              {users.map((user, i) => {
+                const initials = `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase();
+                const colors = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6'];
+                const avatarColor = colors[i % colors.length];
+                const type = (user.userType || user.user_type || "RECRUITER").toUpperCase();
+                return (
+                  <div key={user._id} className="p-4" style={{ borderColor: 'var(--border-light)' }}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: avatarColor }}>{initials}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{user.firstName} {user.lastName}</p>
+                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.username}</p>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0" style={{ background: user.isActive ? '#ecfdf5' : '#fef2f2', color: user.isActive ? '#059669' : '#dc2626' }}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: user.isActive ? '#10b981' : '#ef4444' }}></span>
+                        {user.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div><span style={{ color: 'var(--text-muted)' }}>Type: </span><span className="font-semibold" style={{ color: type === 'ADMIN' ? 'var(--primary)' : '#ea580c' }}>{type === 'ADMIN' ? 'Admin' : 'Recruiter'}</span></div>
+                      <div><span style={{ color: 'var(--text-muted)' }}>Email: </span><span style={{ color: 'var(--text-on-card)' }}>{user.email}</span></div>
+                      <div><span style={{ color: 'var(--text-muted)' }}>Phone: </span><span style={{ color: 'var(--text-on-card)' }}>{user.phone || '—'}</span></div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-light)' }}>
+                      <Link href={`/users/${user._id}`} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#eef2ff', color: '#6366f1' }}>Edit</Link>
+                      <button onClick={() => openPasswordModal(user._id, `${user.firstName} ${user.lastName}`)} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#fffbeb', color: '#f59e0b' }}>Password</button>
+                      <button onClick={() => handleDelete(user._id, `${user.firstName} ${user.lastName}`)} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#fef2f2', color: '#ef4444' }}>Delete</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination */}
+            {perPage > 0 && totalPages > 1 && (
+              <div className="px-5 py-4 flex items-center justify-between flex-wrap gap-3" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  Showing <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{startRecord}</span> to <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{endRecord}</span> of <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{total}</span> users
+                </p>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setPage(1)} disabled={page === 1} className="p-2 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition hover:bg-gray-100" style={{ color: 'var(--text-secondary)' }} title="First">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
+                  </button>
+                  <button onClick={() => setPage(page - 1)} disabled={page === 1} className="px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition hover:bg-gray-100" style={{ color: 'var(--text-secondary)' }}>Prev</button>
+                  {getPageNumbers()[0] > 1 && <span className="px-1 text-xs" style={{ color: 'var(--text-muted)' }}>...</span>}
+                  {getPageNumbers().map((p) => (
+                    <button key={p} onClick={() => setPage(p)} className="w-9 h-9 rounded-lg text-sm font-semibold transition"
+                      style={{ background: p === page ? 'var(--primary)' : 'transparent', color: p === page ? '#ffffff' : 'var(--text-secondary)' }}
+                      onMouseEnter={(e) => { if (p !== page) e.target.style.background = 'var(--bg-input)'; }}
+                      onMouseLeave={(e) => { if (p !== page) e.target.style.background = 'transparent'; }}>{p}</button>
+                  ))}
+                  {getPageNumbers()[getPageNumbers().length - 1] < totalPages && <span className="px-1 text-xs" style={{ color: 'var(--text-muted)' }}>...</span>}
+                  <button onClick={() => setPage(page + 1)} disabled={page === totalPages} className="px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition hover:bg-gray-100" style={{ color: 'var(--text-secondary)' }}>Next</button>
+                  <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className="p-2 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition hover:bg-gray-100" style={{ color: 'var(--text-secondary)' }} title="Last">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Password Update Modal */}
+      {passwordModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setPasswordModal({ open: false, userId: null, userName: "" })}></div>
+          <div className="relative keka-card w-full max-w-md p-6">
+            <h3 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Update Password</h3>
+            <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>Set a new password for <strong>{passwordModal.userName}</strong></p>
+
+            <form onSubmit={handlePasswordUpdate}>
+              {passwordError && (
+                <div className="flex items-center gap-2 p-3 rounded-lg text-sm mb-4" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
+                  <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                  {passwordError}
+                </div>
+              )}
+
+              <div className="mb-5">
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                  New Password <span style={{ color: 'var(--danger)' }}>*</span>
+                </label>
+                <input
+                  type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none"
+                  style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                  onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.08)'; }}
+                  onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex items-center gap-3 justify-end">
+                <button type="button" onClick={() => setPasswordModal({ open: false, userId: null, userName: "" })}
+                  className="px-5 py-2.5 rounded-lg text-sm font-medium transition" style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
+                  onMouseEnter={(e) => e.target.style.background = 'var(--bg-input)'} onMouseLeave={(e) => e.target.style.background = 'transparent'}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={passwordSaving} className="btn-primary px-5 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50">
+                  {passwordSaving ? "Updating..." : "Update Password"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
