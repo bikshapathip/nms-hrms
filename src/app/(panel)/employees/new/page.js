@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import SearchableSelect from "@/components/SearchableSelect";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 const inputStyle = { border: '1px solid var(--border-color)', color: 'var(--text-primary)' };
@@ -21,13 +22,20 @@ function Input({ label, required, ...props }) {
   );
 }
 
-function Select({ label, required, children, ...props }) {
+function Select({ label, required, name, value, onChange, options, disabled, placeholder, clearable = true }) {
   return (
     <div>
       <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>
         {label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}
       </label>
-      <select {...props} required={required} className={inputClass} style={inputStyle}>{children}</select>
+      <SearchableSelect
+        value={value}
+        onChange={(v) => onChange({ target: { name, value: v } })}
+        options={options}
+        placeholder={placeholder || `— Select ${label} —`}
+        disabled={disabled}
+        clearable={clearable}
+      />
     </div>
   );
 }
@@ -37,12 +45,14 @@ export default function NewEmployeePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [clients, setClients] = useState([]);
-  const [clientLocations, setClientLocations] = useState([]);
+  const [availableStates, setAvailableStates] = useState([]);
+  const [availableCities, setAvailableCities] = useState([]);
+  const [availableLocations, setAvailableLocations] = useState([]);
   const [form, setForm] = useState({
     employeeId: "", firstName: "", lastName: "", gender: "Male",
     dateOfBirth: "", contactNumber: "", email: "", designation: "", department: "",
-    client: "", clientLocation: "", dateOfJoining: "",
-    city: "", address: "", maritalStatus: "Single",
+    client: "", state: "", city: "", clientLocation: "", dateOfJoining: "",
+    address: "", maritalStatus: "Single",
     nthEmployee: "", referenceName: "", remarks: "",
     panNumber: "", aadharNumber: "", esicNumber: "", uanNumber: "",
     bankName: "", bankAccount: "", ifscCode: "",
@@ -55,14 +65,30 @@ export default function NewEmployeePage() {
     fetch("/api/clients/list").then(r => r.json()).then(data => setClients(Array.isArray(data) ? data : []));
   }, []);
 
+  useEffect(() => {
+    const sel = clients.find(c => c._id === form.client);
+    setAvailableStates([...new Set((sel?.locations || []).map(l => l.state).filter(Boolean))]);
+  }, [clients, form.client]);
+
+  useEffect(() => {
+    const sel = clients.find(c => c._id === form.client);
+    setAvailableCities([...new Set((sel?.locations || []).filter(l => l.state === form.state).map(l => l.city).filter(Boolean))]);
+  }, [clients, form.client, form.state]);
+
+  useEffect(() => {
+    const sel = clients.find(c => c._id === form.client);
+    setAvailableLocations((sel?.locations || []).filter(l => l.state === form.state && l.city === form.city).map(l => l.location).filter(Boolean));
+  }, [clients, form.client, form.state, form.city]);
+
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
-    setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
-    if (name === "client") {
-      const sel = clients.find(c => c._id === value);
-      setClientLocations(sel?.locations || []);
-      setForm((prev) => ({ ...prev, client: value, clientLocation: "" }));
-    }
+    setForm((prev) => {
+      const next = { ...prev, [name]: type === "checkbox" ? checked : value };
+      if (name === "client") { next.state = ""; next.city = ""; next.clientLocation = ""; }
+      else if (name === "state") { next.city = ""; next.clientLocation = ""; }
+      else if (name === "city") { next.clientLocation = ""; }
+      return next;
+    });
   }
 
   async function handleSubmit(e) {
@@ -116,21 +142,13 @@ export default function NewEmployeePage() {
             <Input label="Employee ID" name="employeeId" value={form.employeeId} onChange={handleChange} required placeholder="EMP001" />
             <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} required />
             <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} required />
-            <Select label="Gender" name="gender" value={form.gender} onChange={handleChange} required>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </Select>
+            <Select label="Gender" name="gender" value={form.gender} onChange={handleChange} required clearable={false}
+              options={["Male", "Female", "Other"]} />
             <Input label="Date of Birth" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
             <Input label="Contact Number" name="contactNumber" value={form.contactNumber} onChange={handleChange} placeholder="10 digit" maxLength={10} />
             <Input label="Email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="employee@email.com" />
-            <Select label="Marital Status" name="maritalStatus" value={form.maritalStatus} onChange={handleChange}>
-              <option value="Single">Single</option>
-              <option value="Married">Married</option>
-              <option value="Divorced">Divorced</option>
-              <option value="Widowed">Widowed</option>
-            </Select>
-            <Input label="City" name="city" value={form.city} onChange={handleChange} />
+            <Select label="Marital Status" name="maritalStatus" value={form.maritalStatus} onChange={handleChange} clearable={false}
+              options={["Single", "Married", "Divorced", "Widowed"]} />
             <div className="sm:col-span-2 lg:col-span-3">
               <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Address</label>
               <input name="address" value={form.address} onChange={handleChange} className={inputClass} style={inputStyle} placeholder="Full address"
@@ -153,21 +171,16 @@ export default function NewEmployeePage() {
             <Input label="Designation" name="designation" value={form.designation} onChange={handleChange} required />
             <Input label="Department" name="department" value={form.department} onChange={handleChange} />
             <Input label="Date of Joining" name="dateOfJoining" type="date" value={form.dateOfJoining} onChange={handleChange} required />
-            <Select label="Working Status" name="workingStatus" value={form.workingStatus} onChange={handleChange}>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Terminated">Terminated</option>
-              <option value="Resigned">Resigned</option>
-              <option value="On Leave">On Leave</option>
-            </Select>
-            <Select label="Client" name="client" value={form.client} onChange={handleChange}>
-              <option value="">— Select Client —</option>
-              {clients.map(c => <option key={c._id} value={c._id}>{c.clientName}</option>)}
-            </Select>
-            <Select label="Client Location" name="clientLocation" value={form.clientLocation} onChange={handleChange} disabled={!form.client}>
-              <option value="">— Select Location —</option>
-              {clientLocations.map((loc, idx) => <option key={idx} value={loc}>{loc}</option>)}
-            </Select>
+            <Select label="Working Status" name="workingStatus" value={form.workingStatus} onChange={handleChange} clearable={false}
+              options={["Active", "Inactive", "Terminated", "Resigned", "On Leave"]} />
+            <Select label="Client" name="client" value={form.client} onChange={handleChange}
+              options={clients.map(c => ({ value: c._id, label: c.clientName }))} />
+            <Select label="State" name="state" value={form.state} onChange={handleChange} disabled={!form.client}
+              options={availableStates} />
+            <Select label="City" name="city" value={form.city} onChange={handleChange} disabled={!form.state}
+              options={availableCities} />
+            <Select label="Location" name="clientLocation" value={form.clientLocation} onChange={handleChange} disabled={!form.city}
+              options={availableLocations} />
             <Input label="NTH" name="nthEmployee" value={form.nthEmployee} onChange={handleChange} placeholder="e.g. 5th employee" />
             <Input label="Reference Name (Recruiter)" name="referenceName" value={form.referenceName} onChange={handleChange} />
             <div className="sm:col-span-2 lg:col-span-4">

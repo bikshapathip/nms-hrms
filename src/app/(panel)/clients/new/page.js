@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { INDIAN_STATES } from "@/lib/indianStates";
+import SearchableSelect from "@/components/SearchableSelect";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 
@@ -26,8 +28,9 @@ export default function NewClientPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
-  const [form, setForm] = useState({ clientName: "", email: "", phone: "", gstNumber: "", cinNumber: "", address: "" });
-  const [locations, setLocations] = useState([""]);
+  const [form, setForm] = useState({ clientName: "", email: "", phone: "", gstNumber: "", cinNumber: "" });
+  const emptyLocation = { state: "", city: "", location: "", address: "" };
+  const [locations, setLocations] = useState([{ ...emptyLocation }]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -35,9 +38,9 @@ export default function NewClientPage() {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   }
 
-  function addLocation() { setLocations([...locations, ""]); }
+  function addLocation() { setLocations([...locations, { ...emptyLocation }]); }
   function removeLocation(idx) { setLocations(locations.filter((_, i) => i !== idx)); }
-  function updateLocation(idx, value) { setLocations(locations.map((l, i) => i === idx ? value : l)); }
+  function updateLocation(idx, field, value) { setLocations(locations.map((l, i) => i === idx ? { ...l, [field]: value } : l)); }
 
   function validate() {
     const errs = {};
@@ -57,7 +60,7 @@ export default function NewClientPage() {
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSaving(true); setErrors({});
     try {
-      const res = await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, locations: locations.filter(l => l.trim()) }) });
+      const res = await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, locations: locations.filter(l => l.location.trim()) }) });
       const data = await res.json();
       if (!res.ok) { if (data.errors) setErrors(data.errors); else setErrors({ general: data.error }); return; }
       router.push("/clients");
@@ -96,11 +99,6 @@ export default function NewClientPage() {
             <Input label="Contact No." name="phone" value={form.phone} onChange={handleChange} error={errors.phone} placeholder="10 digit number" maxLength={10} />
             <Input label="GST Number" name="gstNumber" value={form.gstNumber} onChange={handleChange} error={errors.gstNumber} placeholder="29ABCDE1234F1Z5" />
             <Input label="CIN Number" name="cinNumber" value={form.cinNumber} onChange={handleChange} placeholder="U12345MH2020PTC123456" />
-            <div className="sm:col-span-2 lg:col-span-3">
-              <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Address</label>
-              <input name="address" value={form.address} onChange={handleChange} placeholder="Full company address" className={inputClass}
-                style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }} />
-            </div>
           </div>
 
           {/* Locations */}
@@ -112,17 +110,35 @@ export default function NewClientPage() {
                 Add Location
               </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-3">
               {locations.map((loc, idx) => (
-                <div key={idx} className="flex items-center gap-2">
+                <div key={idx} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1.5fr_auto] gap-2 items-start">
+                  <SearchableSelect
+                    value={loc.state}
+                    onChange={(v) => updateLocation(idx, "state", v)}
+                    options={INDIAN_STATES}
+                    placeholder="— State —"
+                  />
                   <input
-                    value={loc}
-                    onChange={(e) => updateLocation(idx, e.target.value)}
-                    placeholder={`Location ${idx + 1} (e.g. Hyderabad Branch)`}
+                    value={loc.city}
+                    onChange={(e) => updateLocation(idx, "city", e.target.value)}
+                    placeholder="City"
                     className={inputClass}
                     style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
-                    onFocus={(e) => { e.target.style.borderColor = '#6366f1'; }}
-                    onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; }}
+                  />
+                  <input
+                    value={loc.location}
+                    onChange={(e) => updateLocation(idx, "location", e.target.value)}
+                    placeholder="Location (e.g. Madhapur Branch)"
+                    className={inputClass}
+                    style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
+                  />
+                  <input
+                    value={loc.address}
+                    onChange={(e) => updateLocation(idx, "address", e.target.value)}
+                    placeholder="Branch address"
+                    className={inputClass}
+                    style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
                   />
                   {locations.length > 1 && (
                     <button type="button" onClick={() => removeLocation(idx)} className="p-2 rounded-lg hover:bg-red-50 flex-shrink-0" title="Remove">

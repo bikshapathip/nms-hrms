@@ -3,6 +3,17 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import FullPageLoader from "@/components/FullPageLoader";
+import SearchableSelect from "@/components/SearchableSelect";
+
+function uniqueValues(clients, clientId, extra = {}) {
+  const pool = clientId ? clients.filter((c) => c._id === clientId) : clients;
+  return [...new Set(
+    pool.flatMap((c) => (c.locations || [])
+      .filter((l) => (!extra.state || l.state === extra.state) && (!extra.city || l.city === extra.city))
+      .map((l) => l[extra.field])
+    ).filter(Boolean)
+  )];
+}
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
@@ -10,17 +21,34 @@ export default function EmployeesPage() {
   const [downloading, setDownloading] = useState(false);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [clients, setClients] = useState([]);
+  const [clientFilter, setClientFilter] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [sortField, setSortField] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
 
+  useEffect(() => {
+    fetch("/api/clients/list").then((r) => r.json()).then((d) => setClients(Array.isArray(d) ? d : []));
+  }, []);
+
+  const availableStates = uniqueValues(clients, clientFilter, { field: "state" });
+  const availableCities = uniqueValues(clients, clientFilter, { field: "city", state: stateFilter });
+  const availableLocations = uniqueValues(clients, clientFilter, { field: "location", state: stateFilter, city: cityFilter });
+
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: page.toString(), limit: perPage.toString(), sortField, sortOrder });
       if (search) params.set("search", search);
+      if (clientFilter) params.set("client", clientFilter);
+      if (stateFilter) params.set("state", stateFilter);
+      if (cityFilter) params.set("city", cityFilter);
+      if (locationFilter) params.set("location", locationFilter);
       const res = await fetch(`/api/employees?${params}`);
       const data = await res.json();
       setEmployees(data.employees || []);
@@ -30,7 +58,7 @@ export default function EmployeesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, perPage, sortField, sortOrder]);
+  }, [page, search, perPage, sortField, sortOrder, clientFilter, stateFilter, cityFilter, locationFilter]);
 
   useEffect(() => {
     fetchEmployees();
@@ -115,7 +143,7 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {total === 0 && !search && !loading ? (
+      {total === 0 && !search && !clientFilter && !stateFilter && !cityFilter && !locationFilter && !loading ? (
         <div className="keka-card text-center py-20">
           <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--bg-input)' }}>
             <svg className="w-8 h-8" style={{ color: 'var(--primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,8 +162,8 @@ export default function EmployeesPage() {
       ) : (
         <div className="keka-card overflow-hidden">
           {/* Search bar + Per page */}
-          <div className="p-4 border-b flex items-center justify-between flex-wrap gap-3" style={{ borderColor: 'var(--border-color)' }}>
-            <div className="relative max-w-sm flex-1 min-w-[200px]">
+          <div className="p-4 border-b flex items-center flex-wrap gap-3" style={{ borderColor: 'var(--border-color)' }}>
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -150,23 +178,43 @@ export default function EmployeesPage() {
                 onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.background = 'var(--bg-input)'; }}
               />
             </div>
-            <div className="flex items-center gap-2">
+            <SearchableSelect
+              className="w-40"
+              value={clientFilter}
+              onChange={(v) => { setClientFilter(v); setStateFilter(""); setCityFilter(""); setLocationFilter(""); setPage(1); }}
+              options={clients.map((c) => ({ value: c._id, label: c.clientName }))}
+              placeholder="All Clients"
+            />
+            <SearchableSelect
+              className="w-36"
+              value={stateFilter}
+              onChange={(v) => { setStateFilter(v); setCityFilter(""); setLocationFilter(""); setPage(1); }}
+              options={availableStates}
+              placeholder="All States"
+            />
+            <SearchableSelect
+              className="w-36"
+              value={cityFilter}
+              onChange={(v) => { setCityFilter(v); setLocationFilter(""); setPage(1); }}
+              options={availableCities}
+              placeholder="All Cities"
+            />
+            <SearchableSelect
+              className="w-40"
+              value={locationFilter}
+              onChange={(v) => { setLocationFilter(v); setPage(1); }}
+              options={availableLocations}
+              placeholder="All Locations"
+            />
+            <div className="flex items-center gap-2 ml-auto">
               <label className="text-xs font-medium whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>Per page:</label>
-              <select
-                value={perPage}
-                onChange={(e) => { setPerPage(parseInt(e.target.value)); setPage(1); }}
-                className="px-3 py-2 rounded-lg text-sm outline-none"
-                style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
-                onFocus={(e) => { e.target.style.borderColor = '#6366f1'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; }}
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={75}>75</option>
-                <option value={100}>100</option>
-                <option value={0}>All</option>
-              </select>
+              <SearchableSelect
+                className="w-24"
+                value={perPage.toString()}
+                onChange={(v) => { setPerPage(parseInt(v) || 0); setPage(1); }}
+                options={[{ value: "10", label: "10" }, { value: "25", label: "25" }, { value: "50", label: "50" }, { value: "75", label: "75" }, { value: "100", label: "100" }, { value: "0", label: "All" }]}
+                placeholder="10"
+              />
             </div>
           </div>
 
@@ -210,10 +258,6 @@ export default function EmployeesPage() {
                 </tbody>
               </table>
             </div>
-          ) : employees.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>No employees found for &quot;{search}&quot;</p>
-            </div>
           ) : (
             <>
               <div className="overflow-x-auto hidden md:block">
@@ -239,7 +283,13 @@ export default function EmployeesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {employees.map((emp, i) => {
+                    {employees.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
+                          {search ? <>No employees found for &quot;{search}&quot;</> : "No employees match the selected filters"}
+                        </td>
+                      </tr>
+                    ) : employees.map((emp, i) => {
                       const gross = emp.basicSalary + emp.hra + emp.da + emp.specialAllowance + emp.otherAllowance;
                       const initials = emp.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                       const colors = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6'];
@@ -314,7 +364,11 @@ export default function EmployeesPage() {
 
               {/* Mobile Cards */}
               <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-light)' }}>
-                {employees.map((emp, i) => {
+                {employees.length === 0 ? (
+                  <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
+                    {search ? <>No employees found for &quot;{search}&quot;</> : "No employees match the selected filters"}
+                  </div>
+                ) : employees.map((emp, i) => {
                   const gross = emp.basicSalary + emp.hra + emp.da + emp.specialAllowance + emp.otherAllowance;
                   const initials = emp.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                   const colors = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6'];

@@ -35,6 +35,8 @@ export async function GET(request) {
       name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || emp.name,
       designation: emp.designation,
       client: emp.client,
+      state: emp.state,
+      city: emp.city,
       clientLocation: emp.clientLocation,
       attendance: att
         ? {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import FullPageLoader from "@/components/FullPageLoader";
+import SearchableSelect from "@/components/SearchableSelect";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -21,15 +22,47 @@ export default function PayslipsPage() {
   const [message, setMessage] = useState("");
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState("");
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     fetch("/api/clients/list").then(r => r.json()).then(data => setClients(Array.isArray(data) ? data : []));
   }, []);
 
-  function filterByClient(slips, clientId) {
-    if (!clientId) return slips;
-    return slips.filter(p => p.employee?.client === clientId || p.employee?.client?._id === clientId);
+  function uniqueValues(field, { client, state, city } = {}) {
+    const pool = client ? clients.filter((c) => c._id === client) : clients;
+    return [...new Set(
+      pool.flatMap((c) => (c.locations || [])
+        .filter((l) => (!state || l.state === state) && (!city || l.city === city))
+        .map((l) => l[field])
+      ).filter(Boolean)
+    )];
+  }
+
+  const availableStates = uniqueValues("state", { client: selectedClient });
+  const availableCities = uniqueValues("city", { client: selectedClient, state: selectedState });
+  const availableLocations = uniqueValues("location", { client: selectedClient, state: selectedState, city: selectedCity });
+
+  function applyFilters(slips, { client, state, city, location }) {
+    return slips.filter((p) => {
+      const emp = p.employee;
+      if (client && !(emp?.client === client || emp?.client?._id === client)) return false;
+      if (state && emp?.state !== state) return false;
+      if (city && emp?.city !== city) return false;
+      if (location && emp?.clientLocation !== location) return false;
+      return true;
+    });
+  }
+
+  function updateFilters(patch) {
+    const next = { client: selectedClient, state: selectedState, city: selectedCity, location: selectedLocation, ...patch };
+    if (patch.client !== undefined) { next.state = ""; next.city = ""; next.location = ""; setSelectedState(""); setSelectedCity(""); setSelectedLocation(""); setSelectedClient(patch.client); }
+    if (patch.state !== undefined) { next.city = ""; next.location = ""; setSelectedCity(""); setSelectedLocation(""); setSelectedState(patch.state); }
+    if (patch.city !== undefined) { next.location = ""; setSelectedLocation(""); setSelectedCity(patch.city); }
+    if (patch.location !== undefined) { setSelectedLocation(patch.location); }
+    if (fetched) setPayslips(applyFilters(allPayslips, next));
   }
 
   async function fetchPayslips() {
@@ -41,7 +74,7 @@ export default function PayslipsPage() {
       const data = await res.json();
       const slips = Array.isArray(data) ? data : [];
       setAllPayslips(slips);
-      setPayslips(filterByClient(slips, selectedClient));
+      setPayslips(applyFilters(slips, { client: selectedClient, state: selectedState, city: selectedCity, location: selectedLocation }));
       setFetched(true);
     } catch (err) {
       console.error(err);
@@ -76,8 +109,6 @@ export default function PayslipsPage() {
   const totalGross = payslips.reduce((sum, p) => sum + p.earnedGross, 0);
   const totalDeductions = payslips.reduce((sum, p) => sum + p.totalDeductions, 0);
 
-  const selectStyle = { border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-card)' };
-
   return (
     <div>
       {downloading && <FullPageLoader text="Downloading Payslip..." />}
@@ -91,22 +122,63 @@ export default function PayslipsPage() {
         <div className="flex items-end gap-4 flex-wrap">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Month</label>
-            <select value={month} onChange={(e) => { setMonth(parseInt(e.target.value)); setFetched(false); }} className="px-4 py-2.5 rounded-lg text-sm outline-none" style={selectStyle}>
-              {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-            </select>
+            <SearchableSelect
+              className="w-36"
+              clearable={false}
+              value={month.toString()}
+              onChange={(v) => { setMonth(parseInt(v)); setFetched(false); }}
+              options={MONTHS.map((m, i) => ({ value: (i + 1).toString(), label: m }))}
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Year</label>
-            <select value={year} onChange={(e) => { setYear(parseInt(e.target.value)); setFetched(false); }} className="px-4 py-2.5 rounded-lg text-sm outline-none" style={selectStyle}>
-              {years.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
+            <SearchableSelect
+              className="w-24"
+              clearable={false}
+              value={year.toString()}
+              onChange={(v) => { setYear(parseInt(v)); setFetched(false); }}
+              options={years.map((y) => y.toString())}
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Client</label>
-            <select value={selectedClient} onChange={(e) => { setSelectedClient(e.target.value); if (fetched) setPayslips(filterByClient(allPayslips, e.target.value)); }} className="px-4 py-2.5 rounded-lg text-sm outline-none" style={selectStyle}>
-              <option value="">All Clients</option>
-              {clients.map(c => <option key={c._id} value={c._id}>{c.clientName}</option>)}
-            </select>
+            <SearchableSelect
+              className="w-40"
+              value={selectedClient}
+              onChange={(v) => updateFilters({ client: v })}
+              options={clients.map(c => ({ value: c._id, label: c.clientName }))}
+              placeholder="All Clients"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>State</label>
+            <SearchableSelect
+              className="w-36"
+              value={selectedState}
+              onChange={(v) => updateFilters({ state: v })}
+              options={availableStates}
+              placeholder="All States"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>City</label>
+            <SearchableSelect
+              className="w-36"
+              value={selectedCity}
+              onChange={(v) => updateFilters({ city: v })}
+              options={availableCities}
+              placeholder="All Cities"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Location</label>
+            <SearchableSelect
+              className="w-40"
+              value={selectedLocation}
+              onChange={(v) => updateFilters({ location: v })}
+              options={availableLocations}
+              placeholder="All Locations"
+            />
           </div>
           <button onClick={fetchPayslips} disabled={loading} className="btn-primary px-5 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50 flex items-center gap-2">
             {loading ? (

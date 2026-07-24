@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import SearchableSelect from "@/components/SearchableSelect";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 const inputStyle = { border: '1px solid var(--border-color)', color: 'var(--text-primary)' };
@@ -142,10 +143,12 @@ export default function EditUserPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>User Type <span style={{ color: 'var(--danger)' }}>*</span></label>
-              <select name="userType" value={form.userType} onChange={handleChange} required className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition" style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
-                <option value="Admin">Admin</option>
-                <option value="Recruiter">Recruiter</option>
-              </select>
+              <SearchableSelect
+                clearable={false}
+                value={form.userType}
+                onChange={(v) => handleChange({ target: { name: "userType", value: v } })}
+                options={["Admin", "Recruiter"]}
+              />
             </div>
             <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} required error={errors.firstName} />
             <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} required error={errors.lastName} />

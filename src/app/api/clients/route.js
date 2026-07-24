@@ -14,6 +14,9 @@ export async function GET(request) {
   const page = parseInt(searchParams.get("page")) || 1;
   const limit = parseInt(searchParams.get("limit")) || 10;
   const search = searchParams.get("search") || "";
+  const state = searchParams.get("state") || "";
+  const city = searchParams.get("city") || "";
+  const location = searchParams.get("location") || "";
   const sortField = searchParams.get("sortField") || "createdAt";
   const sortOrder = searchParams.get("sortOrder") === "asc" ? 1 : -1;
 
@@ -21,16 +24,25 @@ export async function GET(request) {
   const safeSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
   const sortQuery = { [safeSortField]: sortOrder };
 
-  const filter = search
-    ? {
-        $or: [
-          { clientName: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } },
-          { phone: { $regex: search, $options: "i" } },
-          { gstNumber: { $regex: search, $options: "i" } },
-        ],
-      }
-    : {};
+  const filterConditions = [];
+  if (search) {
+    filterConditions.push({
+      $or: [
+        { clientName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+        { gstNumber: { $regex: search, $options: "i" } },
+      ],
+    });
+  }
+  if (state || city || location) {
+    const elemMatch = {};
+    if (state) elemMatch.state = state;
+    if (city) elemMatch.city = { $regex: city, $options: "i" };
+    if (location) elemMatch.location = { $regex: location, $options: "i" };
+    filterConditions.push({ locations: { $elemMatch: elemMatch } });
+  }
+  const filter = filterConditions.length > 0 ? { $and: filterConditions } : {};
 
   const total = await Client.countDocuments(filter);
 
@@ -67,15 +79,28 @@ export async function POST(request) {
     return NextResponse.json({ error: "Validation failed", errors }, { status: 400 });
   }
 
-  const client = await Client.create({
-    clientName: body.clientName.trim(),
-    email: body.email.trim().toLowerCase(),
-    phone: body.phone || "",
-    gstNumber: body.gstNumber ? body.gstNumber.toUpperCase().trim() : "",
-    cinNumber: body.cinNumber ? body.cinNumber.toUpperCase().trim() : "",
-    address: body.address || "",
-    locations: Array.isArray(body.locations) ? body.locations.filter(l => l.trim()) : [],
-  });
+  try {
+    const client = await Client.create({
+      clientName: body.clientName.trim(),
+      email: body.email.trim().toLowerCase(),
+      phone: body.phone || "",
+      gstNumber: body.gstNumber ? body.gstNumber.toUpperCase().trim() : "",
+      cinNumber: body.cinNumber ? body.cinNumber.toUpperCase().trim() : "",
+      locations: Array.isArray(body.locations)
+        ? body.locations
+            .map((l) => ({
+              state: (l.state || "").trim(),
+              city: (l.city || "").trim(),
+              location: (l.location || "").trim(),
+              address: (l.address || "").trim(),
+            }))
+            .filter((l) => l.location)
+        : [],
+    });
 
-  return NextResponse.json(client, { status: 201 });
+    return NextResponse.json(client, { status: 201 });
+  } catch (err) {
+    console.error("Client create error:", err);
+    return NextResponse.json({ error: err.message || "Failed to create client" }, { status: 500 });
+  }
 }

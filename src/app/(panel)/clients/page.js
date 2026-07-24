@@ -2,23 +2,48 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import SearchableSelect from "@/components/SearchableSelect";
+
+function uniqueValues(clients, { field, state, city }) {
+  return [...new Set(
+    clients.flatMap((c) => (c.locations || [])
+      .filter((l) => (!state || l.state === state) && (!city || l.city === city))
+      .map((l) => l[field])
+    ).filter(Boolean)
+  )];
+}
 
 export default function ClientsPage() {
   const [clients, setClients] = useState([]);
+  const [allClients, setAllClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [sortField, setSortField] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
 
+  useEffect(() => {
+    fetch("/api/clients/list").then((r) => r.json()).then((d) => setAllClients(Array.isArray(d) ? d : []));
+  }, []);
+
+  const availableStates = uniqueValues(allClients, { field: "state" });
+  const availableCities = uniqueValues(allClients, { field: "city", state: stateFilter });
+  const availableLocations = uniqueValues(allClients, { field: "location", state: stateFilter, city: cityFilter });
+
   const fetchClients = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: page.toString(), limit: perPage.toString(), sortField, sortOrder });
       if (search) params.set("search", search);
+      if (stateFilter) params.set("state", stateFilter);
+      if (cityFilter) params.set("city", cityFilter);
+      if (locationFilter) params.set("location", locationFilter);
       const res = await fetch(`/api/clients?${params}`);
       const data = await res.json();
       setClients(data.clients || []);
@@ -28,7 +53,7 @@ export default function ClientsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, perPage, sortField, sortOrder]);
+  }, [page, search, perPage, sortField, sortOrder, stateFilter, cityFilter, locationFilter]);
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
@@ -89,19 +114,43 @@ export default function ClientsPage() {
       </div>
 
       <div className="keka-card overflow-hidden">
-        <div className="p-4 border-b flex items-center justify-between flex-wrap gap-3" style={{ borderColor: 'var(--border-color)' }}>
-          <div className="relative max-w-sm flex-1 min-w-[200px]">
+        <div className="p-4 border-b flex items-center flex-wrap gap-3" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             <input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder="Search by name, email, GST..."
               className="w-full pl-10 pr-4 py-2 rounded-lg text-sm outline-none"
               style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }} />
           </div>
-          <div className="flex items-center gap-2">
+          <SearchableSelect
+            className="w-40"
+            value={stateFilter}
+            onChange={(v) => { setStateFilter(v); setCityFilter(""); setLocationFilter(""); setPage(1); }}
+            options={availableStates}
+            placeholder="All States"
+          />
+          <SearchableSelect
+            className="w-40"
+            value={cityFilter}
+            onChange={(v) => { setCityFilter(v); setLocationFilter(""); setPage(1); }}
+            options={availableCities}
+            placeholder="All Cities"
+          />
+          <SearchableSelect
+            className="w-44"
+            value={locationFilter}
+            onChange={(v) => { setLocationFilter(v); setPage(1); }}
+            options={availableLocations}
+            placeholder="All Locations"
+          />
+          <div className="flex items-center gap-2 ml-auto">
             <label className="text-xs font-medium whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>Per page:</label>
-            <select value={perPage} onChange={(e) => { setPerPage(parseInt(e.target.value)); setPage(1); }}
-              className="px-3 py-2 rounded-lg text-sm outline-none" style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-card)' }}>
-              <option value={10}>10</option><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option><option value={0}>All</option>
-            </select>
+            <SearchableSelect
+              className="w-24"
+              value={perPage.toString()}
+              onChange={(v) => { setPerPage(parseInt(v) || 0); setPage(1); }}
+              options={[{ value: "10", label: "10" }, { value: "25", label: "25" }, { value: "50", label: "50" }, { value: "100", label: "100" }, { value: "0", label: "All" }]}
+              placeholder="10"
+            />
           </div>
         </div>
 
@@ -130,10 +179,6 @@ export default function ClientsPage() {
               </tbody>
             </table>
           </div>
-        ) : clients.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{search ? `No clients found for "${search}"` : "No clients added yet"}</p>
-          </div>
         ) : (
           <>
             {/* Desktop Table */}
@@ -151,7 +196,13 @@ export default function ClientsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {clients.map((client) => (
+                  {clients.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
+                        {search ? `No clients found for "${search}"` : (stateFilter || cityFilter || locationFilter) ? "No clients match the selected filters" : "No clients added yet"}
+                      </td>
+                    </tr>
+                  ) : clients.map((client) => (
                     <tr key={client._id} className="transition" style={{ borderBottom: '1px solid var(--border-light)' }}>
                       <td className="px-5 py-4 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{client.clientName}</td>
                       <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-on-card)' }}>{client.email}</td>
@@ -160,7 +211,7 @@ export default function ClientsPage() {
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-1">
                           {client.locations?.length > 0 ? client.locations.map((loc, idx) => (
-                            <span key={idx} className="inline-flex px-2 py-0.5 rounded text-xs font-medium" style={{ background: 'var(--bg-input)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{loc}</span>
+                            <span key={idx} className="inline-flex px-2 py-0.5 rounded text-xs font-medium" style={{ background: 'var(--bg-input)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{loc.location}{loc.city ? ` (${loc.city})` : ""}</span>
                           )) : <span className="text-sm" style={{ color: 'var(--text-muted)' }}>—</span>}
                         </div>
                       </td>
@@ -188,7 +239,11 @@ export default function ClientsPage() {
 
             {/* Mobile Cards */}
             <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-light)' }}>
-              {clients.map((client) => (
+              {clients.length === 0 ? (
+                <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
+                  {search ? `No clients found for "${search}"` : (stateFilter || cityFilter || locationFilter) ? "No clients match the selected filters" : "No clients added yet"}
+                </div>
+              ) : clients.map((client) => (
                 <div key={client._id} className="p-4" style={{ borderColor: 'var(--border-light)' }}>
                   <div className="flex items-start justify-between mb-2">
                     <div>
@@ -207,7 +262,7 @@ export default function ClientsPage() {
                   {client.locations?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {client.locations.map((loc, idx) => (
-                        <span key={idx} className="px-2 py-0.5 rounded text-xs" style={{ background: 'var(--bg-input)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{loc}</span>
+                        <span key={idx} className="px-2 py-0.5 rounded text-xs" style={{ background: 'var(--bg-input)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{loc.location}{loc.city ? ` (${loc.city})` : ""}</span>
                       ))}
                     </div>
                   )}

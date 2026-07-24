@@ -7,7 +7,6 @@ import Client from "@/models/Client";
 export async function GET(request, { params }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await dbConnect();
   const client = await Client.findById(params.id).lean();
@@ -42,16 +41,29 @@ export async function PUT(request, { params }) {
     phone: body.phone || "",
     gstNumber: body.gstNumber ? body.gstNumber.toUpperCase().trim() : "",
     cinNumber: body.cinNumber ? body.cinNumber.toUpperCase().trim() : "",
-    address: body.address || "",
-    locations: Array.isArray(body.locations) ? body.locations.filter(l => l.trim()) : [],
+    locations: Array.isArray(body.locations)
+      ? body.locations
+          .map((l) => ({
+            state: (l.state || "").trim(),
+            city: (l.city || "").trim(),
+            location: (l.location || "").trim(),
+            address: (l.address || "").trim(),
+          }))
+          .filter((l) => l.location)
+      : [],
     isActive: body.isActive ?? true,
   };
 
-  const client = await Client.findByIdAndUpdate(params.id, { $set: updateData }, { new: true, runValidators: true });
+  try {
+    const client = await Client.findByIdAndUpdate(params.id, { $set: updateData }, { new: true, runValidators: true });
 
-  if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
-  return NextResponse.json(client);
+    return NextResponse.json(client);
+  } catch (err) {
+    console.error("Client update error:", err);
+    return NextResponse.json({ error: err.message || "Failed to update client" }, { status: 500 });
+  }
 }
 
 export async function DELETE(request, { params }) {

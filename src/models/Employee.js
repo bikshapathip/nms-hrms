@@ -14,6 +14,7 @@ const EmployeeSchema = new mongoose.Schema({
   clientLocation: { type: String, default: "" },
   dateOfJoining: { type: Date, required: true },
   city: { type: String, default: "" },
+  state: { type: String, default: "" },
   address: { type: String, default: "" },
   maritalStatus: { type: String, enum: ["Single", "Married", "Divorced", "Widowed"], default: "Single" },
   nthEmployee: { type: String, default: "" },

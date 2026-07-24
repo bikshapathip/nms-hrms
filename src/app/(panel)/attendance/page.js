@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import SearchableSelect from "@/components/SearchableSelect";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -20,14 +21,45 @@ export default function AttendancePage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState("");
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("");
 
   useEffect(() => {
     fetch("/api/clients/list").then(r => r.json()).then(data => setClients(Array.isArray(data) ? data : []));
   }, []);
 
-  function filterByClient(emps, clientId) {
-    if (!clientId) return emps;
-    return emps.filter(e => e.client === clientId || e.client?._id === clientId);
+  function uniqueValues(field, { client, state, city } = {}) {
+    const pool = client ? clients.filter((c) => c._id === client) : clients;
+    return [...new Set(
+      pool.flatMap((c) => (c.locations || [])
+        .filter((l) => (!state || l.state === state) && (!city || l.city === city))
+        .map((l) => l[field])
+      ).filter(Boolean)
+    )];
+  }
+
+  const availableStates = uniqueValues("state", { client: selectedClient });
+  const availableCities = uniqueValues("city", { client: selectedClient, state: selectedState });
+  const availableLocations = uniqueValues("location", { client: selectedClient, state: selectedState, city: selectedCity });
+
+  function applyFilters(emps, { client, state, city, location }) {
+    return emps.filter((e) => {
+      if (client && !(e.client === client || e.client?._id === client)) return false;
+      if (state && e.state !== state) return false;
+      if (city && e.city !== city) return false;
+      if (location && e.clientLocation !== location) return false;
+      return true;
+    });
+  }
+
+  function updateFilters(patch) {
+    const next = { client: selectedClient, state: selectedState, city: selectedCity, location: selectedLocation, ...patch };
+    if (patch.client !== undefined) { next.state = ""; next.city = ""; next.location = ""; setSelectedState(""); setSelectedCity(""); setSelectedLocation(""); setSelectedClient(patch.client); }
+    if (patch.state !== undefined) { next.city = ""; next.location = ""; setSelectedCity(""); setSelectedLocation(""); setSelectedState(patch.state); }
+    if (patch.city !== undefined) { next.location = ""; setSelectedLocation(""); setSelectedCity(patch.city); }
+    if (patch.location !== undefined) { setSelectedLocation(patch.location); }
+    if (fetched) setEmployees(applyFilters(allEmployees, next));
   }
 
   async function fetchAttendance() {
@@ -40,7 +72,7 @@ export default function AttendancePage() {
       const data = await res.json();
       const emps = Array.isArray(data) ? data : [];
       setAllEmployees(emps);
-      setEmployees(filterByClient(emps, selectedClient));
+      setEmployees(applyFilters(emps, { client: selectedClient, state: selectedState, city: selectedCity, location: selectedLocation }));
       setFetched(true);
     } catch (err) {
       console.error(err);
@@ -88,8 +120,6 @@ export default function AttendancePage() {
   const years = [];
   for (let y = now.getFullYear() - 2; y <= now.getFullYear() + 1; y++) years.push(y);
 
-  const selectStyle = { border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-card)' };
-
   return (
     <div>
       <div className="mb-6">
@@ -102,22 +132,63 @@ export default function AttendancePage() {
         <div className="flex items-center gap-4 flex-wrap">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Month</label>
-            <select value={month} onChange={(e) => { setMonth(parseInt(e.target.value)); setFetched(false); }} className="px-4 py-2.5 rounded-lg text-sm outline-none" style={selectStyle}>
-              {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-            </select>
+            <SearchableSelect
+              className="w-36"
+              clearable={false}
+              value={month.toString()}
+              onChange={(v) => { setMonth(parseInt(v)); setFetched(false); }}
+              options={MONTHS.map((m, i) => ({ value: (i + 1).toString(), label: m }))}
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Year</label>
-            <select value={year} onChange={(e) => { setYear(parseInt(e.target.value)); setFetched(false); }} className="px-4 py-2.5 rounded-lg text-sm outline-none" style={selectStyle}>
-              {years.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
+            <SearchableSelect
+              className="w-24"
+              clearable={false}
+              value={year.toString()}
+              onChange={(v) => { setYear(parseInt(v)); setFetched(false); }}
+              options={years.map((y) => y.toString())}
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Client</label>
-            <select value={selectedClient} onChange={(e) => { setSelectedClient(e.target.value); if (fetched) setEmployees(filterByClient(allEmployees, e.target.value)); }} className="px-4 py-2.5 rounded-lg text-sm outline-none" style={selectStyle}>
-              <option value="">All Clients</option>
-              {clients.map(c => <option key={c._id} value={c._id}>{c.clientName}</option>)}
-            </select>
+            <SearchableSelect
+              className="w-40"
+              value={selectedClient}
+              onChange={(v) => updateFilters({ client: v })}
+              options={clients.map(c => ({ value: c._id, label: c.clientName }))}
+              placeholder="All Clients"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>State</label>
+            <SearchableSelect
+              className="w-36"
+              value={selectedState}
+              onChange={(v) => updateFilters({ state: v })}
+              options={availableStates}
+              placeholder="All States"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>City</label>
+            <SearchableSelect
+              className="w-36"
+              value={selectedCity}
+              onChange={(v) => updateFilters({ city: v })}
+              options={availableCities}
+              placeholder="All Cities"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Location</label>
+            <SearchableSelect
+              className="w-40"
+              value={selectedLocation}
+              onChange={(v) => updateFilters({ location: v })}
+              options={availableLocations}
+              placeholder="All Locations"
+            />
           </div>
           <div className="self-end">
             <button onClick={fetchAttendance} disabled={loading} className="btn-primary px-5 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50 flex items-center gap-2">

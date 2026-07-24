@@ -41,13 +41,45 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex items-center gap-3">
-          <svg className="animate-spin h-5 w-5" style={{ color: 'var(--primary)' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-          </svg>
-          <span style={{ color: 'var(--text-secondary)' }}>Loading dashboard...</span>
+      <div>
+        {/* Welcome Banner Skeleton */}
+        <div className="rounded-2xl p-6 mb-8" style={{ background: 'var(--bg-card)' }}>
+          <div className="h-3.5 w-24 rounded bg-gray-200 animate-pulse"></div>
+          <div className="h-6 w-48 rounded bg-gray-200 animate-pulse mt-3"></div>
+          <div className="h-3.5 w-64 rounded bg-gray-200 animate-pulse mt-3"></div>
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="keka-card p-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="h-2.5 w-20 rounded bg-gray-200 animate-pulse"></div>
+                  <div className="h-6 w-16 rounded bg-gray-200 animate-pulse mt-3"></div>
+                </div>
+                <div className="w-11 h-11 rounded-xl bg-gray-200 animate-pulse"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick Actions Skeleton */}
+        <div>
+          <div className="h-4 w-32 rounded bg-gray-200 animate-pulse mb-4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="keka-card p-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-gray-200 animate-pulse flex-shrink-0"></div>
+                  <div className="flex-1">
+                    <div className="h-3.5 w-28 rounded bg-gray-200 animate-pulse"></div>
+                    <div className="h-2.5 w-36 rounded bg-gray-200 animate-pulse mt-2"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Salary from "@/models/Salary";
+import "@/models/Employee";
 
 export async function GET(request) {
   const session = await getServerSession(authOptions);
@@ -19,9 +20,13 @@ export async function GET(request) {
   await dbConnect();
 
   const payslips = await Salary.find({ month, year })
-    .populate("employee", "employeeId name designation department client clientLocation")
-    .sort({ "employee.name": 1 })
+    .populate("employee", "employeeId firstName lastName designation department client state city clientLocation")
     .lean();
+
+  payslips.forEach((p) => {
+    if (p.employee) p.employee.name = `${p.employee.firstName || ""} ${p.employee.lastName || ""}`.trim();
+  });
+  payslips.sort((a, b) => (a.employee?.name || "").localeCompare(b.employee?.name || ""));
 
   return NextResponse.json(payslips);
 }

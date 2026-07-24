@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import SearchableSelect from "@/components/SearchableSelect";
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -156,14 +157,13 @@ export default function UsersPage() {
           </div>
           <div className="flex items-center gap-2">
             <label className="text-xs font-medium whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>Per page:</label>
-            <select value={perPage} onChange={(e) => { setPerPage(parseInt(e.target.value)); setPage(1); }}
-              className="px-3 py-2 rounded-lg text-sm outline-none" style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-card)' }}>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value={0}>All</option>
-            </select>
+            <SearchableSelect
+              className="w-24"
+              value={perPage.toString()}
+              onChange={(v) => { setPerPage(parseInt(v) || 0); setPage(1); }}
+              options={[{ value: "10", label: "10" }, { value: "25", label: "25" }, { value: "50", label: "50" }, { value: "100", label: "100" }, { value: "0", label: "All" }]}
+              placeholder="10"
+            />
           </div>
         </div>
 

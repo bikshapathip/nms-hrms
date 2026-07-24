@@ -5,15 +5,7 @@ import dbConnect from "@/lib/mongodb";
 import Employee from "@/models/Employee";
 import Client from "@/models/Client";
 import puppeteer from "puppeteer";
-import fs from "fs";
-import path from "path";
-
-let logoBase64 = "";
-try {
-  const logoPath = path.join(process.cwd(), "public", "logo.png");
-  const logoBuffer = fs.readFileSync(logoPath);
-  logoBase64 = `data:image/png;base64,${logoBuffer.toString("base64")}`;
-} catch (e) { console.warn("Logo not found"); }
+import { renderBrandedDocument, getPdfPageOptions } from "@/lib/pdfLayout";
 
 function fmtDate(date) {
   if (!date) return "___________";
@@ -21,49 +13,7 @@ function fmtDate(date) {
 }
 function fmt(n) { return (n || 0).toLocaleString("en-IN"); }
 
-function getHeaderTemplate(logo) {
-  return `<div style="width:100%;font-size:10px;margin:0;padding:0;">
-  <div style="position:relative;height:42px;margin-left:48px;">
-    <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:#2d2d2d;clip-path:polygon(25px 0,100% 0,100% 100%,72px 100%);"></div>
-    <div style="position:absolute;left:-44px;top:-2px;width:78px;height:78px;z-index:10;">
-      <img src="${logo}" style="width:78px;height:78px;object-fit:contain;" />
-    </div>
-    <div style="position:relative;z-index:5;display:flex;align-items:center;height:100%;padding:0 12px 0 68px;">
-      <span style="flex:1;text-align:right;font-family:Arial,sans-serif;font-size:12px;font-weight:900;color:#e8a83e;letter-spacing:1px;white-space:nowrap;">NILKANTA MANAGEMENT SERIVICES PRIVATE LIMITED</span>
-    </div>
-  </div>
-  <div style="position:relative;height:20px;margin-left:48px;">
-    <div style="position:absolute;top:0;left:50%;right:0;bottom:0;background:#c8943e;clip-path:polygon(0 0,100% 0,100% 100%,22px 100%);"></div>
-    <div style="position:relative;z-index:5;display:flex;align-items:center;justify-content:flex-end;height:100%;padding-right:12px;">
-      <span style="font-family:Arial,sans-serif;font-size:9px;font-weight:900;color:#1a1a1a;letter-spacing:0.5px;">CIN: U70200TS2025PTC198036</span>
-    </div>
-  </div>
-  <div style="border-bottom:2px solid #2d2d2d;margin-top:8px;"></div>
-</div>`;
-}
-
-const footerTemplate = `<div style="width:100%;font-size:10px;margin:0;padding:0;">
-  <div style="border-top:2px solid #2d2d2d;margin:0 16px;"></div>
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:5px 18px 3px;font-family:Arial,sans-serif;font-size:7.5px;color:#333;">
-    <div style="display:flex;align-items:flex-start;gap:4px;max-width:40%;line-height:1.3;">
-      <svg width="12" height="15" viewBox="0 0 24 30" fill="#2d2d2d"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 18 12 18s12-9 12-18C24 5.4 18.6 0 12 0zm0 16c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z"/></svg>
-      <span>H.No.12-10-409/25/1, Bidal Basti, Sitaphalmandi, Secunderabad, Hyderabad,500061 TG.</span>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;text-align:right;">
-      <div style="display:flex;align-items:center;gap:4px;">
-        <svg width="14" height="11" viewBox="0 0 24 18" fill="none" stroke="#2d2d2d" stroke-width="2"><rect x="1" y="1" width="22" height="16" rx="2"/><polyline points="1,1 12,10 23,1"/></svg>
-        <a href="mailto:nilkantamanpower@gmail.com" style="color:#2456a4;text-decoration:underline;">nilkantamanpower@gmail.com</a>
-      </div>
-      <div style="margin-top:1px;">GST NO. <b>36AAKCN4393E1Z8</b></div>
-    </div>
-  </div>
-  <div style="height:20px;margin-top:2px;position:relative;overflow:hidden;">
-    <div style="position:absolute;left:0;bottom:0;width:30%;height:100%;background:#c8943e;clip-path:polygon(0 0,85% 0,100% 100%,0 100%);"></div>
-    <div style="position:absolute;left:18%;bottom:0;width:82%;height:100%;background:#2d2d2d;clip-path:polygon(14% 0,100% 0,100% 100%,0 100%);"></div>
-  </div>
-</div>`;
-
-function generateHTML(emp, client) {
+function generateBodyHtml(emp, client) {
   const name = `${emp.firstName || ""} ${emp.lastName || ""}`.trim();
   const address = [emp.address, emp.city].filter(Boolean).join(", ") || "___________";
   const doj = fmtDate(emp.dateOfJoining);
@@ -86,102 +36,7 @@ function generateHTML(emp, client) {
   const co = "Nilkanta";
   const U = t => `<span style="text-decoration:underline">${t}</span>`;
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>
-@page { margin: 0; size: A4; }
-* { margin:0;padding:0;box-sizing:border-box; }
-body { font-family:'Times New Roman',Times,serif;font-size:11pt;color:#000;line-height:1.55; }
-
-/* Table layout for repeating header/footer */
-.page-table { width:100%;border-collapse:collapse; }
-.page-table thead td { padding:0;vertical-align:top; }
-.page-table tfoot td { padding:0;vertical-align:bottom;height:55px; }
-.page-table tbody td { padding:0 28px;vertical-align:top; }
-
-/* Force tfoot to bottom of page */
-.page-table tfoot { display:table-footer-group; }
-@media print {
-  .page-table tfoot td { position:fixed;bottom:0;left:0;right:0;height:55px; }
-  .ftr-placeholder { height:60px; }
-}
-.page-table { width:100%;border-collapse:collapse; }
-.page-table thead td { padding:0; }
-.page-table tfoot td { padding:0; }
-.page-table tbody td { padding:0 28px; }
-
-/* Header */
-.hdr { position:relative;width:100%; }
-.hdr-top { position:relative;height:50px;margin-left:55px; }
-.hdr-top-bg { position:absolute;top:0;left:0;right:0;bottom:0;background:#2d2d2d;clip-path:polygon(30px 0,100% 0,100% 100%,85px 100%); }
-.hdr-top-content { position:relative;z-index:5;display:flex;align-items:center;height:100%;padding:0 15px 0 80px; }
-.hdr-logo { position:absolute;left:3px;top:-2px;width:95px;height:95px;z-index:10; }
-.hdr-logo img { width:88px;height:88px;object-fit:contain; }
-.hdr-name { flex:1;text-align:right;font-family:Arial,sans-serif;font-size:13.5pt;font-weight:900;color:#e8a83e;letter-spacing:1px;white-space:nowrap; }
-.hdr-cin { position:relative;height:26px;margin-left:55px; }
-.hdr-cin-bg { position:absolute;top:0;left:50%;right:0;bottom:0;background:#c8943e;clip-path:polygon(0 0,100% 0,100% 100%,30px 100%); }
-.hdr-cin-text { position:relative;z-index:5;display:flex;align-items:center;justify-content:flex-end;height:100%;padding-right:10px;font-family:Arial,sans-serif;font-size:12pt;font-weight:900;color:#1a1a1a;letter-spacing:0.5px; }
-.hdr-line { border-bottom:2.5px solid #2d2d2d;margin-top:12px; }
-.hdr-spacer { height:10px; }
-
-/* Footer */
-.ftr { width:100%; }
-.ftr-spacer { height:8px; }
-.ftr-line { border-top:2.5px solid #2d2d2d;margin:0 18px; }
-.ftr-content { display:flex;align-items:flex-start;justify-content:space-between;padding:5px 20px 4px;font-size:8.5pt;color:#333;font-family:Arial,sans-serif; }
-.ftr-addr { display:flex;align-items:flex-start;gap:5px;max-width:40%;line-height:1.3; }
-.ftr-right { display:flex;flex-direction:column;align-items:flex-end;text-align:right; }
-.ftr-right a { color:#2456a4;text-decoration:underline; }
-
-/* Content */
-.bold { font-weight:bold; }
-ol { margin-left:16px; }
-ol>li { margin-bottom:7px;text-align:justify; }
-ol.rom { list-style-type:lower-roman;margin-left:24px; }
-ol.rom li { margin-bottom:5px;text-align:justify; }
-.st { width:82%;margin:10px auto;border-collapse:collapse;font-size:10pt; }
-.st th,.st td { border:1px solid #333;padding:3px 8px; }
-.st th { background:#e0e0e0;text-align:center;font-weight:bold; }
-.st .sh { background:#d0d0d0;font-weight:bold;text-align:center; }
-.st .hg { background:#c6efce; } .st .hy { background:#fff2cc; } .st .hb { background:#d6e4f0; }
-.st td:last-child { text-align:right; }
-.sr { display:flex;justify-content:space-between;margin-top:30px; }
-.sr div { width:45%; }
-.pb { page-break-before:always; }
-.wm { position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:380px;height:380px;opacity:0.22;pointer-events:none;z-index:0; }
-.wm img { width:100%;height:100%;object-fit:contain; }
-</style></head><body>
-
-<div class="wm"><img src="${logoBase64}" /></div>
-
-<table class="page-table">
-<thead><tr><td>
-  <div class="hdr">
-    <div class="hdr-logo"><img src="${logoBase64}" /></div>
-    <div class="hdr-top"><div class="hdr-top-bg"></div><div class="hdr-top-content"><div class="hdr-name">NILKANTA MANAGEMENT SERIVICES PRIVATE LIMITED</div></div></div>
-    <div class="hdr-cin"><div class="hdr-cin-bg"></div><div class="hdr-cin-text">CIN: U70200TS2025PTC198036</div></div>
-    <div class="hdr-line"></div>
-    <div class="hdr-spacer"></div>
-  </div>
-</td></tr></thead>
-<tfoot><tr><td>
-  <div class="ftr">
-    <div class="ftr-spacer"></div>
-    <div class="ftr-line"></div>
-    <div class="ftr-content">
-      <div class="ftr-addr">
-        <svg width="12" height="15" viewBox="0 0 24 30" fill="#2d2d2d"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 18 12 18s12-9 12-18C24 5.4 18.6 0 12 0zm0 16c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z"/></svg>
-        <span>H.No.12-10-409/25/1, Bidal Basti, Sitaphalmandi, Secunderabad, Hyderabad,500061 TG.</span>
-      </div>
-      <div class="ftr-right">
-        <div style="display:flex;align-items:center;gap:4px;"><svg width="14" height="11" viewBox="0 0 24 18" fill="none" stroke="#2d2d2d" stroke-width="2"><rect x="1" y="1" width="22" height="16" rx="2"/><polyline points="1,1 12,10 23,1"/></svg><a href="#">nilkantamanpower@gmail.com</a></div>
-        <div style="margin-top:1px;">GST NO. <b>36AAKCN4393E1Z8</b></div>
-      </div>
-    </div>
-  </div>
-</td></tr></tfoot>
-<tbody><tr><td>
-
-<div style="text-align:center;font-weight:bold;font-size:12pt;text-decoration:underline;margin:10px 0 12px;">CONTRACT EMPLOYMENT LETTER</div>
+  return `<div style="text-align:center;font-weight:bold;font-size:12pt;text-decoration:underline;margin:10px 0 12px;">CONTRACT EMPLOYMENT LETTER</div>
 <div style="text-align:right;font-weight:bold;margin-bottom:8px;">Date: ${doj}</div>
 <p><b>Employee Code:</b> ${empCode}</p><br/>
 <p><b>Name:</b> ${name}</p>
@@ -254,13 +109,7 @@ ol.rom li { margin-bottom:5px;text-align:justify; }
 <br/><br/><br/>
 <div style="text-align:right;width:55%;margin-left:auto;">
 <p><b>Signature:</b></p><p><b>Name: ${name}</b></p><p><b>Date: ${doj}</b></p>
-</div>
-
-<div class="ftr-placeholder"></div>
-</div><!-- end content -->
-</td></tr></tbody>
-</table>
-</body></html>`;
+</div>`;
 }
 
 export async function GET(request, { params }) {
@@ -274,7 +123,7 @@ export async function GET(request, { params }) {
   let client = null;
   if (employee.client) client = await Client.findById(employee.client).lean();
 
-  const html = generateHTML(employee, client);
+  const html = renderBrandedDocument({ bodyHtml: generateBodyHtml(employee, client) });
 
   let browser;
   try {
@@ -285,7 +134,7 @@ export async function GET(request, { params }) {
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: "0", bottom: "0", left: "0", right: "0" },
+      ...getPdfPageOptions(),
     });
 
     const empName = `${employee.firstName || ""}_${employee.lastName || ""}`.replace(/\s+/g, "_");

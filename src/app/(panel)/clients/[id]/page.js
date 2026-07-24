@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { INDIAN_STATES } from "@/lib/indianStates";
+import SearchableSelect from "@/components/SearchableSelect";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 
@@ -28,8 +30,9 @@ export default function EditClientPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
-  const [form, setForm] = useState({ clientName: "", email: "", phone: "", gstNumber: "", cinNumber: "", address: "", isActive: true });
-  const [locations, setLocations] = useState([""]);
+  const [form, setForm] = useState({ clientName: "", email: "", phone: "", gstNumber: "", cinNumber: "", isActive: true });
+  const emptyLocation = { state: "", city: "", location: "", address: "" };
+  const [locations, setLocations] = useState([{ ...emptyLocation }]);
 
   useEffect(() => {
     async function fetchClient() {
@@ -40,10 +43,13 @@ export default function EditClientPage() {
         setForm({
           clientName: data.clientName || "", email: data.email || "",
           phone: data.phone || "", gstNumber: data.gstNumber || "",
-          cinNumber: data.cinNumber || "", address: data.address || "",
+          cinNumber: data.cinNumber || "",
           isActive: data.isActive ?? true,
         });
-        setLocations(data.locations?.length > 0 ? data.locations : [""]);
+        const normalized = (data.locations || []).map((l) =>
+          typeof l === "string" ? { state: "", city: "", location: l, address: "" } : { state: l.state || "", city: l.city || "", location: l.location || "", address: l.address || "" }
+        );
+        setLocations(normalized.length > 0 ? normalized : [{ ...emptyLocation }]);
       } catch (err) { setErrors({ general: err.message }); }
       finally { setLoading(false); }
     }
@@ -56,9 +62,9 @@ export default function EditClientPage() {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   }
 
-  function addLocation() { setLocations([...locations, ""]); }
+  function addLocation() { setLocations([...locations, { ...emptyLocation }]); }
   function removeLocation(idx) { setLocations(locations.filter((_, i) => i !== idx)); }
-  function updateLocation(idx, value) { setLocations(locations.map((l, i) => i === idx ? value : l)); }
+  function updateLocation(idx, field, value) { setLocations(locations.map((l, i) => i === idx ? { ...l, [field]: value } : l)); }
 
   function validate() {
     const errs = {};
@@ -78,7 +84,7 @@ export default function EditClientPage() {
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSaving(true); setErrors({});
     try {
-      const res = await fetch(`/api/clients/${params.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, locations: locations.filter(l => l.trim()) }) });
+      const res = await fetch(`/api/clients/${params.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, locations: locations.filter(l => l.location.trim()) }) });
       const data = await res.json();
       if (!res.ok) { if (data.errors) setErrors(data.errors); else setErrors({ general: data.error }); return; }
       router.push("/clients");
@@ -128,12 +134,8 @@ export default function EditClientPage() {
             <Input label="Contact No." name="phone" value={form.phone} onChange={handleChange} error={errors.phone} placeholder="10 digit number" maxLength={10} />
             <Input label="GST Number" name="gstNumber" value={form.gstNumber} onChange={handleChange} error={errors.gstNumber} placeholder="29ABCDE1234F1Z5" />
             <Input label="CIN Number" name="cinNumber" value={form.cinNumber} onChange={handleChange} placeholder="U12345MH2020PTC123456" />
-            <div className="sm:col-span-2 lg:col-span-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Address</label>
-              <input name="address" value={form.address} onChange={handleChange} placeholder="Full company address" className={inputClass}
-                style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }} />
-            </div>
-            <div className="flex items-center">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Status</label>
               <label className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg cursor-pointer" style={{ border: '1px solid var(--border-color)' }}>
                 <input name="isActive" type="checkbox" checked={form.isActive} onChange={handleChange} className="w-4 h-4 rounded" style={{ accentColor: '#6366f1' }} />
                 <span className="text-sm font-medium" style={{ color: 'var(--text-on-card)' }}>Active Client</span>
@@ -150,17 +152,35 @@ export default function EditClientPage() {
                 Add Location
               </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-3">
               {locations.map((loc, idx) => (
-                <div key={idx} className="flex items-center gap-2">
+                <div key={idx} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1.5fr_auto] gap-2 items-start">
+                  <SearchableSelect
+                    value={loc.state}
+                    onChange={(v) => updateLocation(idx, "state", v)}
+                    options={INDIAN_STATES}
+                    placeholder="— State —"
+                  />
                   <input
-                    value={loc}
-                    onChange={(e) => updateLocation(idx, e.target.value)}
-                    placeholder={`Location ${idx + 1}`}
+                    value={loc.city}
+                    onChange={(e) => updateLocation(idx, "city", e.target.value)}
+                    placeholder="City"
                     className={inputClass}
                     style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
-                    onFocus={(e) => { e.target.style.borderColor = '#6366f1'; }}
-                    onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; }}
+                  />
+                  <input
+                    value={loc.location}
+                    onChange={(e) => updateLocation(idx, "location", e.target.value)}
+                    placeholder="Location (e.g. Madhapur Branch)"
+                    className={inputClass}
+                    style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
+                  />
+                  <input
+                    value={loc.address}
+                    onChange={(e) => updateLocation(idx, "address", e.target.value)}
+                    placeholder="Branch address"
+                    className={inputClass}
+                    style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
                   />
                   {locations.length > 1 && (
                     <button type="button" onClick={() => removeLocation(idx)} className="p-2 rounded-lg hover:bg-red-50 flex-shrink-0" title="Remove">

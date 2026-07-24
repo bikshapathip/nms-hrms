@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import SearchableSelect from "@/components/SearchableSelect";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 const inputStyle = { border: '1px solid var(--border-color)', color: 'var(--text-primary)' };
@@ -17,11 +18,18 @@ function Input({ label, required, ...props }) {
     </div>
   );
 }
-function Select({ label, required, children, ...props }) {
+function Select({ label, required, name, value, onChange, options, disabled, clearable = true }) {
   return (
     <div>
       <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>{label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}</label>
-      <select {...props} required={required} className={inputClass} style={inputStyle}>{children}</select>
+      <SearchableSelect
+        value={value}
+        onChange={(v) => onChange({ target: { name, value: v } })}
+        options={options}
+        placeholder="— Select —"
+        disabled={disabled}
+        clearable={clearable}
+      />
     </div>
   );
 }
@@ -33,11 +41,13 @@ export default function EditEmployeePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [clients, setClients] = useState([]);
-  const [clientLocations, setClientLocations] = useState([]);
+  const [availableStates, setAvailableStates] = useState([]);
+  const [availableCities, setAvailableCities] = useState([]);
+  const [availableLocations, setAvailableLocations] = useState([]);
   const [form, setForm] = useState({
     employeeId: "", firstName: "", lastName: "", gender: "Male", dateOfBirth: "", contactNumber: "", email: "",
     designation: "", department: "", client: "", clientLocation: "", dateOfJoining: "",
-    city: "", address: "", maritalStatus: "Single", nthEmployee: "", referenceName: "", remarks: "",
+    city: "", state: "", address: "", maritalStatus: "Single", nthEmployee: "", referenceName: "", remarks: "",
     panNumber: "", aadharNumber: "", esicNumber: "", uanNumber: "",
     bankName: "", bankAccount: "", ifscCode: "",
     basicSalary: "", hra: "", da: "", specialAllowance: "", otherAllowance: "",
@@ -46,6 +56,21 @@ export default function EditEmployeePage() {
   });
 
   useEffect(() => { fetch("/api/clients/list").then(r => r.json()).then(d => setClients(Array.isArray(d) ? d : [])); }, []);
+
+  useEffect(() => {
+    const sel = clients.find(c => c._id === form.client);
+    setAvailableStates([...new Set((sel?.locations || []).map(l => l.state).filter(Boolean))]);
+  }, [clients, form.client]);
+
+  useEffect(() => {
+    const sel = clients.find(c => c._id === form.client);
+    setAvailableCities([...new Set((sel?.locations || []).filter(l => l.state === form.state).map(l => l.city).filter(Boolean))]);
+  }, [clients, form.client, form.state]);
+
+  useEffect(() => {
+    const sel = clients.find(c => c._id === form.client);
+    setAvailableLocations((sel?.locations || []).filter(l => l.state === form.state && l.city === form.city).map(l => l.location).filter(Boolean));
+  }, [clients, form.client, form.state, form.city]);
 
   useEffect(() => {
     async function load() {
@@ -57,7 +82,7 @@ export default function EditEmployeePage() {
         setForm({ employeeId: d.employeeId||"", firstName: d.firstName||"", lastName: d.lastName||"", gender: d.gender||"Male",
           dateOfBirth: d.dateOfBirth?d.dateOfBirth.split("T")[0]:"", contactNumber: d.contactNumber||"", email: d.email||"",
           designation: d.designation||"", department: d.department||"", client: cId, clientLocation: d.clientLocation||"",
-          dateOfJoining: d.dateOfJoining?d.dateOfJoining.split("T")[0]:"", city: d.city||"", address: d.address||"",
+          dateOfJoining: d.dateOfJoining?d.dateOfJoining.split("T")[0]:"", city: d.city||"", state: d.state||"", address: d.address||"",
           maritalStatus: d.maritalStatus||"Single", nthEmployee: d.nthEmployee||"", referenceName: d.referenceName||"", remarks: d.remarks||"",
           panNumber: d.panNumber||"", aadharNumber: d.aadharNumber||"", esicNumber: d.esicNumber||"", uanNumber: d.uanNumber||"",
           bankName: d.bankName||"", bankAccount: d.bankAccount||"", ifscCode: d.ifscCode||"",
@@ -67,7 +92,6 @@ export default function EditEmployeePage() {
           professionalTax: d.professionalTax?.toString()||"200", tdsPercent: d.tdsPercent?.toString()||"0",
           workingStatus: d.workingStatus||"Active", isActive: d.isActive??true,
         });
-        if (cId) { const cr = await fetch("/api/clients/list"); const ac = await cr.json(); setClientLocations(ac.find(c=>c._id===cId)?.locations||[]); }
       } catch (e) { setError(e.message); } finally { setLoading(false); }
     }
     load();
@@ -75,8 +99,13 @@ export default function EditEmployeePage() {
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
-    setForm(p => ({ ...p, [name]: type==="checkbox"?checked:value }));
-    if (name==="client") { const s=clients.find(c=>c._id===value); setClientLocations(s?.locations||[]); setForm(p=>({...p,client:value,clientLocation:""})); }
+    setForm(p => {
+      const next = { ...p, [name]: type === "checkbox" ? checked : value };
+      if (name === "client") { next.state = ""; next.city = ""; next.clientLocation = ""; }
+      else if (name === "state") { next.city = ""; next.clientLocation = ""; }
+      else if (name === "city") { next.clientLocation = ""; }
+      return next;
+    });
   }
 
   async function handleSubmit(e) {
@@ -103,13 +132,12 @@ export default function EditEmployeePage() {
             <Input label="Employee ID" name="employeeId" value={form.employeeId} onChange={handleChange} required />
             <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} required />
             <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} required />
-            <Select label="Gender" name="gender" value={form.gender} onChange={handleChange}><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></Select>
+            <Select label="Gender" name="gender" value={form.gender} onChange={handleChange} clearable={false} options={["Male", "Female", "Other"]} />
             <Input label="Date of Birth" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
             <Input label="Contact Number" name="contactNumber" value={form.contactNumber} onChange={handleChange} maxLength={10} />
             <Input label="Email" name="email" type="email" value={form.email} onChange={handleChange} />
-            <Select label="Marital Status" name="maritalStatus" value={form.maritalStatus} onChange={handleChange}><option value="Single">Single</option><option value="Married">Married</option><option value="Divorced">Divorced</option><option value="Widowed">Widowed</option></Select>
-            <Input label="City" name="city" value={form.city} onChange={handleChange} />
-            <div className="lg:col-span-3"><label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{color:'var(--text-secondary)'}}>Address</label><input name="address" value={form.address} onChange={handleChange} className={inputClass} style={inputStyle}/></div>
+            <Select label="Marital Status" name="maritalStatus" value={form.maritalStatus} onChange={handleChange} clearable={false} options={["Single", "Married", "Divorced", "Widowed"]} />
+            <div className="lg:col-span-4"><label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{color:'var(--text-secondary)'}}>Address</label><input name="address" value={form.address} onChange={handleChange} className={inputClass} style={inputStyle}/></div>
           </div>
         </div>
 
@@ -118,9 +146,11 @@ export default function EditEmployeePage() {
             <Input label="Designation" name="designation" value={form.designation} onChange={handleChange} required />
             <Input label="Department" name="department" value={form.department} onChange={handleChange} />
             <Input label="Date of Joining" name="dateOfJoining" type="date" value={form.dateOfJoining} onChange={handleChange} required />
-            <Select label="Working Status" name="workingStatus" value={form.workingStatus} onChange={handleChange}><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Terminated">Terminated</option><option value="Resigned">Resigned</option><option value="On Leave">On Leave</option></Select>
-            <Select label="Client" name="client" value={form.client} onChange={handleChange}><option value="">— Select —</option>{clients.map(c=><option key={c._id} value={c._id}>{c.clientName}</option>)}</Select>
-            <Select label="Location" name="clientLocation" value={form.clientLocation} onChange={handleChange} disabled={!form.client}><option value="">— Select —</option>{clientLocations.map((l,i)=><option key={i} value={l}>{l}</option>)}</Select>
+            <Select label="Working Status" name="workingStatus" value={form.workingStatus} onChange={handleChange} clearable={false} options={["Active", "Inactive", "Terminated", "Resigned", "On Leave"]} />
+            <Select label="Client" name="client" value={form.client} onChange={handleChange} options={clients.map(c => ({ value: c._id, label: c.clientName }))} />
+            <Select label="State" name="state" value={form.state} onChange={handleChange} disabled={!form.client} options={availableStates} />
+            <Select label="City" name="city" value={form.city} onChange={handleChange} disabled={!form.state} options={availableCities} />
+            <Select label="Location" name="clientLocation" value={form.clientLocation} onChange={handleChange} disabled={!form.city} options={availableLocations} />
             <Input label="NTH" name="nthEmployee" value={form.nthEmployee} onChange={handleChange} />
             <Input label="Reference Name" name="referenceName" value={form.referenceName} onChange={handleChange} />
             <div className="lg:col-span-4"><label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{color:'var(--text-secondary)'}}>Remarks</label><input name="remarks" value={form.remarks} onChange={handleChange} className={inputClass} style={inputStyle}/></div>

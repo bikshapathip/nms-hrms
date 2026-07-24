@@ -83,7 +83,7 @@ export default function PayslipDetailPage() {
     <div>
       {downloading && <FullPageLoader text="Downloading Payslip..." />}
       {/* Action bar */}
-      <div className="flex items-center justify-between mb-6 no-print">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2 text-sm">
           <Link href="/payslips" style={{ color: 'var(--primary)' }} className="font-medium hover:underline">Payslips</Link>
           <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -111,132 +111,119 @@ export default function PayslipDetailPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             Download PDF
           </button>
-          <button onClick={() => window.print()} className="btn-primary px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-            Print
-          </button>
         </div>
       </div>
 
       {/* Payslip Document */}
-      <div className="keka-card max-w-3xl mx-auto overflow-hidden" id="payslip">
+      <div className="doc-preview max-w-3xl mx-auto overflow-hidden rounded-xl shadow-sm" id="payslip">
         {/* Header */}
-        <div className="p-8 pb-6" style={{ background: 'linear-gradient(135deg, #1a1d3b 0%, #2d3161 100%)' }}>
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-white">PAYSLIP</h1>
-                  <p className="text-xs" style={{ color: '#9ca0c7' }}>Salary Statement</p>
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="inline-flex px-4 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                <p className="text-white font-bold">{MONTHS[payslip.month - 1]} {payslip.year}</p>
-              </div>
-            </div>
+        <div className="doc-hdr">
+          <div className="doc-hdr-logo"><img src="/logo.png" alt="Nilkanta" /></div>
+          <div className="doc-hdr-top">
+            <div className="doc-hdr-top-bg"></div>
+            <div className="doc-hdr-top-content"><div className="doc-hdr-name">NILKANTA MANAGEMENT SERIVICES PRIVATE LIMITED</div></div>
           </div>
+          <div className="doc-hdr-cin">
+            <div className="doc-hdr-cin-bg"></div>
+            <div className="doc-hdr-cin-text">CIN: U70200TS2025PTC198036</div>
+          </div>
+          <div className="doc-hdr-line"></div>
+          <div className="doc-hdr-spacer"></div>
         </div>
 
-        <div className="p-8">
+        <div className="p-8 pt-2">
+          <div className="doc-ps-title">PAYSLIP</div>
+          <div className="doc-ps-period">{MONTHS[payslip.month - 1]} {payslip.year}</div>
+
           {/* Employee Details */}
-          <div className="grid grid-cols-2 gap-x-8 gap-y-3 mb-8 pb-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
-            {[
-              ["Employee ID", emp?.employeeId],
-              ["Date of Joining", emp?.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString("en-IN") : "—"],
-              ["Employee Name", emp?.name],
-              ["PAN Number", emp?.panNumber || "—"],
-              ["Designation", emp?.designation],
-              ["UAN Number", emp?.uanNumber || "—"],
-              ["Department", emp?.department || "—"],
-              ["Bank Account", emp?.bankAccount || "—"],
-            ].map(([label, value]) => (
-              <div key={label} className="flex items-baseline gap-2">
-                <span className="text-xs font-medium min-w-[100px]" style={{ color: 'var(--text-secondary)' }}>{label}:</span>
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{value}</span>
-              </div>
-            ))}
-          </div>
+          <table className="doc-ps-info">
+            <tbody>
+              {[
+                ["Employee Name", emp?.name || "—", "Employee ID", emp?.employeeId || "—"],
+                ["Designation", emp?.designation || "—", "Department", emp?.department || "—"],
+                ["Date of Joining", emp?.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString("en-IN") : "—", "Bank Account", emp?.bankAccount || "—"],
+                ["PAN Number", emp?.panNumber || "—", "UAN Number", emp?.uanNumber || "—"],
+              ].map(([l1, v1, l2, v2]) => (
+                <tr key={l1}>
+                  <td className="doc-lbl">{l1}</td>
+                  <td>{v1}</td>
+                  <td className="doc-lbl">{l2}</td>
+                  <td>{v2}</td>
+                </tr>
+              ))}
+              <tr>
+                <td className="doc-lbl">Working Days</td>
+                <td>{payslip.totalWorkingDays}</td>
+                <td className="doc-lbl">Days Worked</td>
+                <td>{payslip.daysWorked}</td>
+              </tr>
+              <tr>
+                <td className="doc-lbl">Leave Days</td>
+                <td colSpan={3}>{leaveDays}</td>
+              </tr>
+            </tbody>
+          </table>
 
-          {/* Attendance Summary */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="rounded-xl p-4 text-center" style={{ background: 'var(--bg-input)' }}>
-              <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Working Days</p>
-              <p className="text-xl font-bold mt-1" style={{ color: 'var(--primary)' }}>{payslip.totalWorkingDays}</p>
-            </div>
-            <div className="rounded-xl p-4 text-center" style={{ background: '#ecfdf5' }}>
-              <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Days Worked</p>
-              <p className="text-xl font-bold mt-1" style={{ color: '#10b981' }}>{payslip.daysWorked}</p>
-            </div>
-            <div className="rounded-xl p-4 text-center" style={{ background: leaveDays > 0 ? '#fef2f2' : '#f8f9fc' }}>
-              <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Leave Days</p>
-              <p className="text-xl font-bold mt-1" style={{ color: leaveDays > 0 ? '#ef4444' : '#374151' }}>{leaveDays}</p>
-            </div>
-          </div>
+          {/* Earnings */}
+          <table className="doc-st">
+            <tbody>
+              <tr><th colSpan={2} className="doc-sh">Earnings</th></tr>
+              {earnings.map((e) => (
+                <tr key={e.label}>
+                  <td>{e.label}</td>
+                  <td>{e.value.toLocaleString("en-IN")}</td>
+                </tr>
+              ))}
+              <tr className="doc-hg">
+                <td><b>Gross Earnings (A)</b></td>
+                <td><b>{payslip.earnedGross.toLocaleString("en-IN")}</b></td>
+              </tr>
+            </tbody>
+          </table>
 
-          {/* Earnings & Deductions */}
-          <div className="grid grid-cols-2 gap-8 mb-8">
-            {/* Earnings */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-1.5 h-5 rounded-full" style={{ background: '#10b981' }}></div>
-                <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Earnings</h3>
-              </div>
-              <div className="space-y-3">
-                {earnings.map((e) => (
-                  <div key={e.label} className="flex justify-between items-center">
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{e.label}</span>
-                    <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>₹{e.value.toLocaleString("en-IN")}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between items-center pt-3 mt-3" style={{ borderTop: '2px solid var(--border-color)' }}>
-                  <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Gross Earnings</span>
-                  <span className="text-sm font-bold" style={{ color: '#10b981' }}>₹{payslip.earnedGross.toLocaleString("en-IN")}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Deductions */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-1.5 h-5 rounded-full" style={{ background: 'var(--danger)' }}></div>
-                <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Deductions</h3>
-              </div>
-              <div className="space-y-3">
-                {deductions.length > 0 ? deductions.map((d) => (
-                  <div key={d.label} className="flex justify-between items-center">
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{d.label}</span>
-                    <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>₹{d.value.toLocaleString("en-IN")}</span>
-                  </div>
-                )) : (
-                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No deductions</p>
-                )}
-                <div className="flex justify-between items-center pt-3 mt-3" style={{ borderTop: '2px solid var(--border-color)' }}>
-                  <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Total Deductions</span>
-                  <span className="text-sm font-bold" style={{ color: 'var(--danger)' }}>₹{payslip.totalDeductions.toLocaleString("en-IN")}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Deductions */}
+          <table className="doc-st">
+            <tbody>
+              <tr><th colSpan={2} className="doc-sh">Deductions</th></tr>
+              {deductions.length > 0 ? deductions.map((d) => (
+                <tr key={d.label}>
+                  <td>{d.label}</td>
+                  <td>{d.value.toLocaleString("en-IN")}</td>
+                </tr>
+              )) : (
+                <tr><td colSpan={2} className="text-center" style={{ color: '#888' }}>No deductions</td></tr>
+              )}
+              <tr className="doc-hy">
+                <td><b>Total Deductions (B)</b></td>
+                <td><b>{payslip.totalDeductions.toLocaleString("en-IN")}</b></td>
+              </tr>
+            </tbody>
+          </table>
 
           {/* Net Salary */}
-          <div className="rounded-xl p-6" style={{ background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#059669' }}>Net Salary Payable</p>
-                <p className="text-xs mt-2" style={{ color: '#047857' }}>{numberToWords(payslip.netSalary)}</p>
-              </div>
-              <p className="text-3xl font-bold" style={{ color: '#059669' }}>₹{payslip.netSalary.toLocaleString("en-IN")}</p>
+          <div className="doc-ps-net">
+            <div>
+              <p className="doc-lbl">Net Salary Payable (A - B)</p>
+              <p className="doc-words">{numberToWords(payslip.netSalary)}</p>
             </div>
+            <p className="doc-amt">₹{payslip.netSalary.toLocaleString("en-IN")}</p>
           </div>
 
-          {/* Footer */}
-          <div className="mt-8 pt-4 text-center" style={{ borderTop: '1px solid var(--border-color)' }}>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>This is a system-generated payslip and does not require a signature.</p>
+          <p className="doc-ps-note">This is a system-generated payslip and does not require a signature.</p>
+        </div>
+
+        {/* Footer */}
+        <div className="doc-ftr">
+          <div className="doc-ftr-spacer"></div>
+          <div className="doc-ftr-line"></div>
+          <div className="doc-ftr-content">
+            <div className="doc-ftr-addr">
+              <span>H.No.12-10-409/25/1, Bidal Basti, Sitaphalmandi, Secunderabad, Hyderabad,500061 TG.</span>
+            </div>
+            <div className="doc-ftr-right">
+              <a href="mailto:nilkantamanpower@gmail.com">nilkantamanpower@gmail.com</a>
+              <div style={{ marginTop: '1px' }}>GST NO. <b>36AAKCN4393E1Z8</b></div>
+            </div>
           </div>
         </div>
       </div>

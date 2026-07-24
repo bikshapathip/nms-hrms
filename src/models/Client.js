@@ -6,8 +6,12 @@ const ClientSchema = new mongoose.Schema({
   phone: { type: String, default: "" },
   gstNumber: { type: String, default: "" },
   cinNumber: { type: String, default: "" },
-  address: { type: String, default: "" },
-  locations: [{ type: String }],
+  locations: [{
+    state: { type: String, default: "" },
+    city: { type: String, default: "" },
+    location: { type: String, default: "" },
+    address: { type: String, default: "" },
+  }],
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 

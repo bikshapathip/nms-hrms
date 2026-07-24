@@ -3,8 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Employee from "@/models/Employee";
+import "@/models/Client";
 
-// Add virtual 'name' to lean results
 function addName(emp) {
   if (emp && !emp.name) emp.name = `${emp.firstName || ""} ${emp.lastName || ""}`.trim();
   return emp;
@@ -20,39 +20,47 @@ export async function GET(request) {
   const page = parseInt(searchParams.get("page")) || 1;
   const limit = parseInt(searchParams.get("limit")) || 10;
   const search = searchParams.get("search") || "";
+  const client = searchParams.get("client") || "";
+  const state = searchParams.get("state") || "";
+  const city = searchParams.get("city") || "";
+  const location = searchParams.get("location") || "";
   const sortField = searchParams.get("sortField") || "createdAt";
   const sortOrder = searchParams.get("sortOrder") === "asc" ? 1 : -1;
-  const all = searchParams.get("all"); // if "true", return all (for attendance/payslips)
+  const all = searchParams.get("all");
 
-  // Allowed sort fields to prevent injection
   const allowedSortFields = ["name", "employeeId", "designation", "department", "basicSalary", "isActive", "createdAt", "dateOfJoining"];
   const safeSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
   const sortQuery = { [safeSortField]: sortOrder };
 
-  // If all=true, return all employees without pagination
+  const filterConditions = [];
+  if (search) {
+    filterConditions.push({
+      $or: [
+        { firstName: { $regex: search, $options: "i" } },
+        { lastName: { $regex: search, $options: "i" } },
+        { employeeId: { $regex: search, $options: "i" } },
+        { designation: { $regex: search, $options: "i" } },
+        { department: { $regex: search, $options: "i" } },
+        { contactNumber: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ],
+    });
+  }
+  if (client) filterConditions.push({ client });
+  if (state) filterConditions.push({ state });
+  if (city) filterConditions.push({ city });
+  if (location) filterConditions.push({ clientLocation: location });
+  const locationFilter = filterConditions.length > 0 ? { $and: filterConditions } : {};
+
   if (all === "true") {
-    const employees = await Employee.find().populate("client", "clientName locations").sort(sortQuery).lean();
+    const employees = await Employee.find(locationFilter).populate("client", "clientName locations").sort(sortQuery).lean();
     return NextResponse.json(employees.map(addName));
   }
 
-  // Build search filter
-  const filter = search
-    ? {
-        $or: [
-          { firstName: { $regex: search, $options: "i" } },
-          { lastName: { $regex: search, $options: "i" } },
-          { employeeId: { $regex: search, $options: "i" } },
-          { designation: { $regex: search, $options: "i" } },
-          { department: { $regex: search, $options: "i" } },
-          { contactNumber: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } },
-        ],
-      }
-    : {};
+  const filter = locationFilter;
 
   const total = await Employee.countDocuments(filter);
 
-  // If limit is 0, return all (for "All" option)
   if (limit === 0) {
     const employees = await Employee.find(filter).populate("client", "clientName locations").sort(sortQuery).lean();
     return NextResponse.json({

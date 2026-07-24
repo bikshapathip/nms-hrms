@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const AttendanceSchema = new mongoose.Schema({
   employee: { type: mongoose.Schema.Types.ObjectId, ref: "Employee", required: true },
-  month: { type: Number, required: true }, // 1-12
+  month: { type: Number, required: true },
   year: { type: Number, required: true },
   totalWorkingDays: { type: Number, required: true, default: 26 },
   daysWorked: { type: Number, required: true, default: 0 },
