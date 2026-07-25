@@ -4,8 +4,11 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Employee from "@/models/Employee";
 import Client from "@/models/Client";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "@/lib/pdfBrowser";
 import { renderBrandedDocument, getPdfPageOptions } from "@/lib/pdfLayout";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function fmtDate(date) {
   if (!date) return "___________";
@@ -127,7 +130,7 @@ export async function GET(request, { params }) {
 
   let browser;
   try {
-    browser = await puppeteer.launch({ headless: "new", args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"] });
+    browser = await launchBrowser();
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 

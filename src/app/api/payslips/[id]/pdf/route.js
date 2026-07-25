@@ -4,8 +4,11 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Salary from "@/models/Salary";
 import "@/models/Employee";
-import puppeteer from "puppeteer";
+import { launchBrowser } from "@/lib/pdfBrowser";
 import { renderBrandedDocument, getPdfPageOptions } from "@/lib/pdfLayout";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -118,10 +121,7 @@ export async function GET(request, { params }) {
 
   let browser;
   try {
-    browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-    });
+    browser = await launchBrowser();
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
