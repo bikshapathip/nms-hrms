@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import FullPageLoader from "@/components/FullPageLoader";
 import SearchableSelect from "@/components/SearchableSelect";
 
 const MONTHS = [
@@ -25,7 +24,6 @@ export default function PayslipsPage() {
   const [selectedState, setSelectedState] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
-  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     fetch("/api/clients/list").then(r => r.json()).then(data => setClients(Array.isArray(data) ? data : []));
@@ -111,7 +109,6 @@ export default function PayslipsPage() {
 
   return (
     <div>
-      {downloading && <FullPageLoader text="Downloading Payslip..." />}
       <div className="mb-6">
         <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Payslips</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Generate and manage monthly payslips</p>
@@ -259,7 +256,7 @@ export default function PayslipsPage() {
                 <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Gross</th>
                 <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Deductions</th>
                 <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Net Salary</th>
-                <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Action</th>
+                <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Payroll</th>
               </tr>
             </thead>
             <tbody>
@@ -289,31 +286,10 @@ export default function PayslipsPage() {
                       <span className="text-sm font-bold" style={{ color: '#10b981' }}>₹{p.netSalary.toLocaleString("en-IN")}</span>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Link href={`/payslips/${p._id}`} className="p-2 rounded-lg transition hover:bg-indigo-50" title="View Payslip">
-                          <svg className="w-4 h-4" style={{ color: 'var(--primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                        </Link>
-                        <button
-                          onClick={async () => {
-                            setDownloading(true);
-                            try {
-                              const res = await fetch(`/api/payslips/${p._id}/pdf`);
-                              if (res.ok) {
-                                const blob = await res.blob();
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement("a");
-                                a.href = url;
-                                a.download = res.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || "payslip.pdf";
-                                a.click();
-                                URL.revokeObjectURL(url);
-                              }
-                            } finally { setDownloading(false); }
-                          }}
-                          className="p-2 rounded-lg transition hover:bg-green-50" title="Download PDF"
-                        >
-                          <svg className="w-4 h-4" style={{ color: '#10b981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        </button>
-                      </div>
+                      <Link href={`/employees/${p.employee?._id}/payroll`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition hover:bg-indigo-50" style={{ color: 'var(--primary)' }} title="View full payroll history">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>
+                        View History
+                      </Link>
                     </td>
                   </tr>
                 );
@@ -341,16 +317,7 @@ export default function PayslipsPage() {
                     <div><p style={{ color: 'var(--text-muted)' }}>Gross</p><p className="font-semibold" style={{ color: 'var(--text-primary)' }}>₹{p.earnedGross.toLocaleString("en-IN")}</p></div>
                     <div><p style={{ color: 'var(--text-muted)' }}>Net</p><p className="font-bold" style={{ color: '#10b981' }}>₹{p.netSalary.toLocaleString("en-IN")}</p></div>
                   </div>
-                  <div className="flex items-center gap-2 mt-3">
-                    <Link href={`/payslips/${p._id}`} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#eef2ff', color: '#6366f1' }}>View</Link>
-                    <button onClick={async () => {
-                      setDownloading(true);
-                      try {
-                        const res = await fetch(`/api/payslips/${p._id}/pdf`);
-                        if (res.ok) { const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "payslip.pdf"; a.click(); URL.revokeObjectURL(url); }
-                      } finally { setDownloading(false); }
-                    }} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#ecfdf5', color: '#059669' }}>Download</button>
-                  </div>
+                  <Link href={`/employees/${p.employee?._id}/payroll`} className="block text-center py-2 mt-3 rounded-lg text-xs font-semibold" style={{ background: '#eef2ff', color: '#6366f1' }}>View Payroll History</Link>
                 </div>
               );
             })}

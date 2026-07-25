@@ -123,7 +123,13 @@ export default function EditEmployeePage() {
   return (
     <div>
       <div className="flex items-center gap-2 text-sm mb-6"><Link href="/employees" style={{color:'var(--primary)'}} className="font-medium hover:underline">Employees</Link><svg className="w-4 h-4" style={{color:'var(--text-muted)'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg><span style={{color:'var(--text-secondary)'}}>Edit</span></div>
-      <h1 className="text-xl font-bold mb-6" style={{color:'var(--text-primary)'}}>Edit Employee</h1>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h1 className="text-xl font-bold" style={{color:'var(--text-primary)'}}>Edit Employee</h1>
+        <Link href={`/employees/${params.id}/payroll`} className="px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition" style={{ background: 'var(--bg-input)', color: 'var(--primary)', border: '1px solid var(--border-color)' }}>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>
+          View Payroll
+        </Link>
+      </div>
       {error && <div className="p-3 rounded-lg text-sm mb-5" style={{background:'#fef2f2',color:'#dc2626',border:'1px solid #fecaca'}}>{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-5">

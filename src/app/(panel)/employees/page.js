@@ -326,6 +326,11 @@ export default function EmployeesPage() {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                               </Link>
+                              <Link href={`/employees/${emp._id}/payroll`} className="p-2 rounded-lg transition hover:bg-emerald-50" title="View Payroll">
+                                <svg className="w-4 h-4" style={{ color: '#10b981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+                                </svg>
+                              </Link>
                               <button onClick={() => handleDelete(emp._id, emp.name)} className="p-2 rounded-lg transition hover:bg-red-50" title="Delete">
                                 <svg className="w-4 h-4" style={{ color: '#ef4444' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -391,8 +396,9 @@ export default function EmployeesPage() {
                         <div><span style={{ color: 'var(--text-muted)' }}>Department: </span><span style={{ color: 'var(--text-on-card)' }}>{emp.department || "—"}</span></div>
                         <div className="col-span-2"><span style={{ color: 'var(--text-muted)' }}>Gross Salary: </span><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>₹{gross.toLocaleString("en-IN")}</span></div>
                       </div>
-                      <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-light)' }}>
+                      <div className="flex items-center gap-2 mt-3 pt-3 flex-wrap" style={{ borderTop: '1px solid var(--border-light)' }}>
                         <Link href={`/employees/${emp._id}`} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#eef2ff', color: '#6366f1' }}>Edit</Link>
+                        <Link href={`/employees/${emp._id}/payroll`} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#ecfdf5', color: '#10b981' }}>Payroll</Link>
                         <button onClick={() => handleDelete(emp._id, emp.name)} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#fef2f2', color: '#ef4444' }}>Delete</button>
                         <button onClick={async () => {
                           setDownloading(true);
