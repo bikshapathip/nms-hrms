@@ -160,7 +160,7 @@ export default function EmployeesPage() {
           </Link>
         </div>
       ) : (
-        <div className="keka-card overflow-hidden">
+        <div className="keka-card">
           {/* Search bar + Per page */}
           <div className="p-4 border-b flex items-center flex-wrap gap-3" style={{ borderColor: 'var(--border-color)' }}>
             <div className="relative flex-1 min-w-[200px] max-w-sm">
@@ -171,11 +171,11 @@ export default function EmployeesPage() {
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search by name, ID, designation, department..."
+                placeholder="Search by name, ID, designation..."
                 className="w-full pl-10 pr-4 py-2 rounded-lg text-sm outline-none"
-                style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                onFocus={(e) => { e.target.style.borderColor = '#6366f1'; e.target.style.background = 'var(--bg-card)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.background = 'var(--bg-input)'; }}
+                style={{ border: '1px solid var(--border-input)', color: 'var(--text-primary)' }}
+                onFocus={(e) => { e.target.style.borderColor = '#6366f1'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--border-input)'; }}
               />
             </div>
             <SearchableSelect
@@ -270,9 +270,6 @@ export default function EmployeesPage() {
                       <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition" style={{ color: 'var(--text-secondary)' }} onClick={() => handleSort("designation")}>
                         <span className="inline-flex items-center">Designation<SortIcon field="designation" /></span>
                       </th>
-                      <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition" style={{ color: 'var(--text-secondary)' }} onClick={() => handleSort("department")}>
-                        <span className="inline-flex items-center">Department<SortIcon field="department" /></span>
-                      </th>
                       <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition" style={{ color: 'var(--text-secondary)' }} onClick={() => handleSort("basicSalary")}>
                         <span className="inline-flex items-center justify-end">Gross Salary<SortIcon field="basicSalary" /></span>
                       </th>
@@ -285,12 +282,12 @@ export default function EmployeesPage() {
                   <tbody>
                     {employees.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
+                        <td colSpan={5} className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
                           {search ? <>No employees found for &quot;{search}&quot;</> : "No employees match the selected filters"}
                         </td>
                       </tr>
                     ) : employees.map((emp, i) => {
-                      const gross = emp.basicSalary + emp.hra + emp.da + emp.specialAllowance + emp.otherAllowance;
+                      const gross = emp.basicSalary + emp.hra + emp.da + emp.otherAllowance;
                       const initials = emp.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                       const colors = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6'];
                       const avatarColor = colors[((page - 1) * perPage + i) % colors.length];
@@ -308,7 +305,6 @@ export default function EmployeesPage() {
                             </div>
                           </td>
                           <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-on-card)' }}>{emp.designation}</td>
-                          <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-secondary)' }}>{emp.department || "—"}</td>
                           <td className="px-5 py-4 text-sm text-right font-medium" style={{ color: 'var(--text-primary)' }}>₹{gross.toLocaleString("en-IN")}</td>
                           <td className="px-5 py-4 text-center">
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium" style={{
@@ -374,7 +370,7 @@ export default function EmployeesPage() {
                     {search ? <>No employees found for &quot;{search}&quot;</> : "No employees match the selected filters"}
                   </div>
                 ) : employees.map((emp, i) => {
-                  const gross = emp.basicSalary + emp.hra + emp.da + emp.specialAllowance + emp.otherAllowance;
+                  const gross = emp.basicSalary + emp.hra + emp.da + emp.otherAllowance;
                   const initials = emp.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                   const colors = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6'];
                   const avatarColor = colors[i % colors.length];
@@ -393,7 +389,6 @@ export default function EmployeesPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div><span style={{ color: 'var(--text-muted)' }}>Designation: </span><span style={{ color: 'var(--text-on-card)' }}>{emp.designation}</span></div>
-                        <div><span style={{ color: 'var(--text-muted)' }}>Department: </span><span style={{ color: 'var(--text-on-card)' }}>{emp.department || "—"}</span></div>
                         <div className="col-span-2"><span style={{ color: 'var(--text-muted)' }}>Gross Salary: </span><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>₹{gross.toLocaleString("en-IN")}</span></div>
                       </div>
                       <div className="flex items-center gap-2 mt-3 pt-3 flex-wrap" style={{ borderTop: '1px solid var(--border-light)' }}>

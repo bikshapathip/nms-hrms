@@ -4,7 +4,7 @@ export const ROLES = {
 };
 
 export const ROLE_PERMISSIONS = {
-  ADMIN: ["dashboard", "clients", "employees", "attendance", "payslips", "users"],
+  ADMIN: ["dashboard", "clients", "salaryTemplates", "employees", "attendance", "payslips", "users"],
   RECRUITER: ["dashboard", "employees", "attendance"],
 };
 

@@ -6,7 +6,7 @@ const AttendanceSchema = new mongoose.Schema({
   year: { type: Number, required: true },
   totalWorkingDays: { type: Number, required: true, default: 26 },
   daysWorked: { type: Number, required: true, default: 0 },
-  overtimeDays: { type: Number, default: 0 },
+  overtimeHours: { type: Number, default: 0 },
   leaveDays: { type: Number, default: 0 },
 }, { timestamps: true });
 

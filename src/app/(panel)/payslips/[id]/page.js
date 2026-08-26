@@ -68,8 +68,14 @@ export default function PayslipDetailPage() {
     { label: "Basic Salary", value: payslip.earnedBasic },
     { label: "HRA", value: payslip.earnedHra },
     { label: "DA (Dearness Allowance)", value: payslip.earnedDa },
-    { label: "Special Allowance", value: payslip.earnedSpecialAllowance },
     { label: "Other Allowance", value: payslip.earnedOtherAllowance },
+    { label: "Leave Encashment", value: payslip.leaveEncashment },
+    { label: "Attendance Bonus", value: payslip.attendanceBonus },
+    { label: "Performance Bonus", value: payslip.performanceBonus },
+    { label: "Special Allowance", value: payslip.specialAllowance },
+    { label: "Night Allowance", value: payslip.nightAllowance },
+    { label: "Travelling Allowance", value: payslip.travellingAllowance },
+    { label: "OT Amount", value: payslip.otAmount },
   ].filter((e) => e.value > 0);
 
   const deductions = [
@@ -140,15 +146,21 @@ export default function PayslipDetailPage() {
             <tbody>
               {[
                 ["Employee Name", emp?.name || "—", "Employee ID", emp?.employeeId || "—"],
-                ["Designation", emp?.designation || "—", "Department", emp?.department || "—"],
+                ["Designation", emp?.designation || "—"],
                 ["Date of Joining", emp?.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString("en-IN") : "—", "Bank Account", emp?.bankAccount || "—"],
                 ["PAN Number", emp?.panNumber || "—", "UAN Number", emp?.uanNumber || "—"],
               ].map(([l1, v1, l2, v2]) => (
                 <tr key={l1}>
                   <td className="doc-lbl">{l1}</td>
-                  <td>{v1}</td>
-                  <td className="doc-lbl">{l2}</td>
-                  <td>{v2}</td>
+                  {l2 ? (
+                    <>
+                      <td>{v1}</td>
+                      <td className="doc-lbl">{l2}</td>
+                      <td>{v2}</td>
+                    </>
+                  ) : (
+                    <td colSpan={3}>{v1}</td>
+                  )}
                 </tr>
               ))}
               <tr>

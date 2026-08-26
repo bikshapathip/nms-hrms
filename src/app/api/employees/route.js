@@ -28,7 +28,7 @@ export async function GET(request) {
   const sortOrder = searchParams.get("sortOrder") === "asc" ? 1 : -1;
   const all = searchParams.get("all");
 
-  const allowedSortFields = ["name", "employeeId", "designation", "department", "basicSalary", "isActive", "createdAt", "dateOfJoining"];
+  const allowedSortFields = ["name", "employeeId", "designation", "basicSalary", "isActive", "createdAt", "dateOfJoining"];
   const safeSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
   const sortQuery = { [safeSortField]: sortOrder };
 
@@ -40,7 +40,6 @@ export async function GET(request) {
         { lastName: { $regex: search, $options: "i" } },
         { employeeId: { $regex: search, $options: "i" } },
         { designation: { $regex: search, $options: "i" } },
-        { department: { $regex: search, $options: "i" } },
         { contactNumber: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
       ],

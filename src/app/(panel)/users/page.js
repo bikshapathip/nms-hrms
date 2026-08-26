@@ -139,7 +139,7 @@ export default function UsersPage() {
         </Link>
       </div>
 
-      <div className="keka-card overflow-hidden">
+      <div className="keka-card">
         {/* Search + Per page */}
         <div className="p-4 border-b flex items-center justify-between flex-wrap gap-3" style={{ borderColor: 'var(--border-color)' }}>
           <div className="relative max-w-sm flex-1 min-w-[200px]">
@@ -150,9 +150,9 @@ export default function UsersPage() {
               type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search by name, username, email..."
               className="w-full pl-10 pr-4 py-2 rounded-lg text-sm outline-none"
-              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-              onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.background = 'var(--bg-card)'; }}
-              onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.background = 'var(--bg-input)'; }}
+              style={{ border: '1px solid var(--border-input)', color: 'var(--text-primary)' }}
+              onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'var(--border-input)'; }}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -371,16 +371,16 @@ export default function UsersPage() {
               )}
 
               <div className="mb-5">
-                <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>
                   New Password <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <input
                   type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Minimum 6 characters"
                   className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none"
-                  style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                  onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.08)'; }}
-                  onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+                  style={{ border: '1px solid var(--border-input)', color: 'var(--text-primary)' }}
+                  onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; }}
+                  onBlur={(e) => { e.target.style.borderColor = 'var(--border-input)'; }}
                   autoFocus
                 />
               </div>

@@ -21,7 +21,7 @@ export async function GET(request, { params }) {
   await dbConnect();
 
   const payslip = await Salary.findById(params.id)
-    .populate("employee", "employeeId firstName lastName designation department bankAccount panNumber uanNumber dateOfJoining")
+    .populate("employee", "employeeId firstName lastName designation bankAccount panNumber uanNumber dateOfJoining")
     .lean();
 
   if (!payslip) return NextResponse.json({ error: "Payslip not found" }, { status: 404 });

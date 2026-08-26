@@ -113,13 +113,13 @@ export default function ClientsPage() {
         </Link>
       </div>
 
-      <div className="keka-card overflow-hidden">
+      <div className="keka-card">
         <div className="p-4 border-b flex items-center flex-wrap gap-3" style={{ borderColor: 'var(--border-color)' }}>
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             <input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder="Search by name, email, GST..."
               className="w-full pl-10 pr-4 py-2 rounded-lg text-sm outline-none"
-              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }} />
+              style={{ border: '1px solid var(--border-input)', color: 'var(--text-primary)' }} />
           </div>
           <SearchableSelect
             className="w-40"

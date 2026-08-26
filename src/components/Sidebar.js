@@ -18,6 +18,16 @@ const navItems = [
     ),
   },
   {
+    name: "Attendance",
+    key: "attendance",
+    href: "/attendance",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
+  {
     name: "Clients",
     key: "clients",
     href: "/clients",
@@ -38,22 +48,22 @@ const navItems = [
     ),
   },
   {
-    name: "Attendance",
-    key: "attendance",
-    href: "/attendance",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
-  },
-  {
     name: "Payslips",
     key: "payslips",
     href: "/payslips",
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+      </svg>
+    ),
+  },
+  {
+    name: "Salary Templates",
+    key: "salaryTemplates",
+    href: "/salary-templates",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
       </svg>
     ),
   },
@@ -75,7 +85,7 @@ export default function Sidebar({ onClose }) {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <aside className="w-[260px] min-h-screen flex flex-col" style={{ background: 'var(--sidebar-bg)' }}>
+    <aside className="w-[260px] min-h-screen flex flex-col" style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-active)' }}>
       {/* Logo */}
       <div className="px-6 py-5 flex items-center gap-3">
         {/* Mobile close button */}

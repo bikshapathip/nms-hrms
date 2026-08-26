@@ -61,8 +61,14 @@ export function PayslipDocument({ payslip }) {
     { label: "Basic Salary", value: payslip.earnedBasic },
     { label: "HRA", value: payslip.earnedHra },
     { label: "DA / Dearness Allowance", value: payslip.earnedDa },
-    { label: "Special Allowance", value: payslip.earnedSpecialAllowance },
     { label: "Other Allowance", value: payslip.earnedOtherAllowance },
+    { label: "Leave Encashment", value: payslip.leaveEncashment },
+    { label: "Attendance Bonus", value: payslip.attendanceBonus },
+    { label: "Performance Bonus", value: payslip.performanceBonus },
+    { label: "Special Allowance", value: payslip.specialAllowance },
+    { label: "Night Allowance", value: payslip.nightAllowance },
+    { label: "Travelling Allowance", value: payslip.travellingAllowance },
+    { label: "OT Amount", value: payslip.otAmount },
   ].filter((e) => e.value > 0);
 
   const deductions = [
@@ -96,7 +102,7 @@ export function PayslipDocument({ payslip }) {
         <InfoTable
           rows={[
             ["Employee Name", empName, "Employee ID", emp.employeeId || "___________"],
-            ["Designation", emp.designation || "___________", "Department", emp.department || "___________"],
+            ["Designation", emp.designation || "___________"],
             ["Date of Joining", fmtDate(emp.dateOfJoining), "Bank Account", emp.bankAccount || "___________"],
             ["PAN Number", emp.panNumber || "___________", "UAN Number", emp.uanNumber || "___________"],
             ["Working Days", String(payslip.totalWorkingDays), "Days Worked", String(payslip.daysWorked)],

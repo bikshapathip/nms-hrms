@@ -11,13 +11,13 @@ const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transit
 function Input({ label, required, error, ...props }) {
   return (
     <div>
-      <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+      <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>
         {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
       </label>
       <input {...props} required={required} className={inputClass}
-        style={{ border: `1px solid ${error ? '#ef4444' : 'var(--border-color)'}`, color: 'var(--text-primary)', background: 'var(--bg-input)' }}
-        onFocus={(e) => { e.target.style.borderColor = error ? '#ef4444' : '#6366f1'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.08)'; }}
-        onBlur={(e) => { e.target.style.borderColor = error ? '#ef4444' : 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+        style={{ border: `1px solid ${error ? '#ef4444' : 'var(--border-input)'}`, color: 'var(--text-primary)' }}
+        onFocus={(e) => { e.target.style.borderColor = error ? '#ef4444' : '#6366f1'; }}
+        onBlur={(e) => { e.target.style.borderColor = error ? '#ef4444' : 'var(--border-input)'; }}
       />
       {error && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{error}</p>}
     </div>
@@ -135,7 +135,7 @@ export default function EditClientPage() {
             <Input label="GST Number" name="gstNumber" value={form.gstNumber} onChange={handleChange} error={errors.gstNumber} placeholder="29ABCDE1234F1Z5" />
             <Input label="CIN Number" name="cinNumber" value={form.cinNumber} onChange={handleChange} placeholder="U12345MH2020PTC123456" />
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Status</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>Status</label>
               <label className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg cursor-pointer" style={{ border: '1px solid var(--border-color)' }}>
                 <input name="isActive" type="checkbox" checked={form.isActive} onChange={handleChange} className="w-4 h-4 rounded" style={{ accentColor: '#6366f1' }} />
                 <span className="text-sm font-medium" style={{ color: 'var(--text-on-card)' }}>Active Client</span>
@@ -159,28 +159,28 @@ export default function EditClientPage() {
                     value={loc.state}
                     onChange={(v) => updateLocation(idx, "state", v)}
                     options={INDIAN_STATES}
-                    placeholder="— State —"
+                    placeholder="State"
                   />
                   <input
                     value={loc.city}
                     onChange={(e) => updateLocation(idx, "city", e.target.value)}
                     placeholder="City"
                     className={inputClass}
-                    style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
+                    style={{ border: '1px solid var(--border-input)', color: 'var(--text-primary)' }}
                   />
                   <input
                     value={loc.location}
                     onChange={(e) => updateLocation(idx, "location", e.target.value)}
                     placeholder="Location (e.g. Madhapur Branch)"
                     className={inputClass}
-                    style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
+                    style={{ border: '1px solid var(--border-input)', color: 'var(--text-primary)' }}
                   />
                   <input
                     value={loc.address}
                     onChange={(e) => updateLocation(idx, "address", e.target.value)}
                     placeholder="Branch address"
                     className={inputClass}
-                    style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
+                    style={{ border: '1px solid var(--border-input)', color: 'var(--text-primary)' }}
                   />
                   {locations.length > 1 && (
                     <button type="button" onClick={() => removeLocation(idx)} className="p-2 rounded-lg hover:bg-red-50 flex-shrink-0" title="Remove">

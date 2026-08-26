@@ -22,8 +22,8 @@ export function OfferLetterDocument({ employee: emp, client }) {
   const desig = emp.designation || "___________";
   const empCode = emp.employeeId || "___________";
 
-  const b = emp.basicSalary || 0, h = emp.hra || 0, d = emp.da || 0, sa = emp.specialAllowance || 0, oa = emp.otherAllowance || 0;
-  const gross = b + h + d + sa + oa;
+  const b = emp.basicSalary || 0, h = emp.hra || 0, d = emp.da || 0, oa = emp.otherAllowance || 0;
+  const gross = b + h + d + oa;
   const epfE = emp.pfEnabled ? Math.round(b * 0.12) : 0;
   const esicE = emp.esiEnabled && gross <= 21000 ? Math.round(gross * 0.0075) : 0;
   const pt = emp.professionalTax || 0;
@@ -37,7 +37,6 @@ export function OfferLetterDocument({ employee: emp, client }) {
     { label: "Basic", value: fmt(b) },
     { label: "HRA", value: fmt(h) },
     { label: "DA / Dearness Allowance", value: fmt(d) },
-    { label: "Special Allowance", value: fmt(sa) },
     { label: "Other Allowance", value: fmt(oa) },
     { label: "Gross Salary (A)", value: fmt(gross), bold: true, variant: "green" },
     { label: "EPF Contribution [Employee] (12%)", value: fmt(epfE) },

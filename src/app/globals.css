@@ -20,6 +20,7 @@
   --bg-header: #f8f9fc;
   --border-color: #e8eaf0;
   --border-light: #f0f1f5;
+  --border-input: #9599ad;
   --text-primary: #1a1d3b;
   --text-secondary: #6b7194;
   --text-muted: #9ca3af;
@@ -45,6 +46,7 @@
   --bg-header: #131920;
   --border-color: #30363d;
   --border-light: #21262d;
+  --border-input: #454c56;
   --text-primary: #e6edf3;
   --text-secondary: #8b949e;
   --text-muted: #6e7681;
@@ -68,6 +70,19 @@ body {
 
 input:focus, select:focus {
   transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Typed values read a touch darker than placeholder text across all form fields */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="date"],
+input[type="tel"],
+input[type="password"],
+input[type="search"],
+textarea {
+  font-weight: 400;
+  color: var(--text-primary);
 }
 
 .keka-gradient {
@@ -266,3 +281,14 @@ input:focus, select:focus {
 .doc-ps-net .doc-words { font-size:9pt;color:#444;margin-top:2px; }
 .doc-ps-net .doc-amt { font-size:16pt;font-weight:bold; }
 .doc-ps-note { text-align:center;font-size:9pt;color:#555;margin-top:16px; }
+
+/* Hide native spinner arrows on number inputs everywhere; value still submits as a number */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

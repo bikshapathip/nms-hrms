@@ -102,7 +102,7 @@ export default function AttendancePage() {
             totalWorkingDays: emp.attendance.totalWorkingDays,
             daysWorked: emp.attendance.daysWorked,
             leaveDays: Math.max(0, emp.attendance.totalWorkingDays - emp.attendance.daysWorked),
-            overtimeDays: emp.attendance.overtimeDays,
+            overtimeHours: emp.attendance.overtimeHours,
           }),
         })
       );
@@ -131,7 +131,7 @@ export default function AttendancePage() {
       <div className="keka-card p-4 mb-6">
         <div className="flex items-center gap-4 flex-wrap">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Month</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>Month</label>
             <SearchableSelect
               className="w-36"
               clearable={false}
@@ -141,7 +141,7 @@ export default function AttendancePage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Year</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>Year</label>
             <SearchableSelect
               className="w-24"
               clearable={false}
@@ -151,7 +151,7 @@ export default function AttendancePage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Client</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>Client</label>
             <SearchableSelect
               className="w-40"
               value={selectedClient}
@@ -161,7 +161,7 @@ export default function AttendancePage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>State</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>State</label>
             <SearchableSelect
               className="w-36"
               value={selectedState}
@@ -171,7 +171,7 @@ export default function AttendancePage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>City</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>City</label>
             <SearchableSelect
               className="w-36"
               value={selectedCity}
@@ -181,7 +181,7 @@ export default function AttendancePage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Location</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>Location</label>
             <SearchableSelect
               className="w-40"
               value={selectedLocation}
@@ -277,7 +277,7 @@ export default function AttendancePage() {
                 <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Working Days</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Days Worked</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Leave Days</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>OT Days</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>OT Hours</th>
               </tr>
             </thead>
             <tbody>
@@ -302,9 +302,9 @@ export default function AttendancePage() {
                         <input type="number" min="0" max="31" value={emp.attendance.totalWorkingDays}
                           onChange={(e) => handleFieldChange(emp._id, "totalWorkingDays", e.target.value)}
                           className="w-16 px-2 py-1.5 rounded-lg text-sm text-center outline-none"
-                          style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                          onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.08)'; }}
-                          onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+                          style={{ border: '1px solid var(--border-input)', color: 'var(--text-primary)' }}
+                          onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; }}
+                          onBlur={(e) => { e.target.style.borderColor = 'var(--border-input)'; }}
                         />
                       ) : (
                         <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{emp.attendance.totalWorkingDays}</span>
@@ -315,7 +315,7 @@ export default function AttendancePage() {
                         <input type="number" min="0" max="31" value={emp.attendance.daysWorked}
                           onChange={(e) => handleFieldChange(emp._id, "daysWorked", e.target.value)}
                           className="w-16 px-2 py-1.5 rounded-lg text-sm text-center outline-none font-semibold"
-                          style={{ border: '1px solid var(--primary)', color: 'var(--text-primary)', boxShadow: '0 0 0 3px rgba(99,102,241,0.08)' }}
+                          style={{ border: '1px solid var(--primary)', color: 'var(--text-primary)' }}
                         />
                       ) : (
                         <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{emp.attendance.daysWorked}</span>
@@ -328,15 +328,15 @@ export default function AttendancePage() {
                     </td>
                     <td className="px-3 py-3.5 text-center">
                       {editMode ? (
-                        <input type="number" min="0" max="31" value={emp.attendance.overtimeDays}
-                          onChange={(e) => handleFieldChange(emp._id, "overtimeDays", e.target.value)}
+                        <input type="number" min="0" max="300" value={emp.attendance.overtimeHours}
+                          onChange={(e) => handleFieldChange(emp._id, "overtimeHours", e.target.value)}
                           className="w-16 px-2 py-1.5 rounded-lg text-sm text-center outline-none"
-                          style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                          onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.08)'; }}
-                          onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+                          style={{ border: '1px solid var(--border-input)', color: 'var(--text-primary)' }}
+                          onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; }}
+                          onBlur={(e) => { e.target.style.borderColor = 'var(--border-input)'; }}
                         />
                       ) : (
-                        <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{emp.attendance.overtimeDays}</span>
+                        <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{emp.attendance.overtimeHours}</span>
                       )}
                     </td>
                   </tr>
@@ -369,7 +369,7 @@ export default function AttendancePage() {
                         <input type="number" min="0" max="31" value={emp.attendance.totalWorkingDays}
                           onChange={(e) => handleFieldChange(emp._id, "totalWorkingDays", e.target.value)}
                           className="w-full px-2 py-1 rounded text-sm text-center outline-none mt-1 font-semibold"
-                          style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)' }} />
+                          style={{ border: '1px solid var(--border-input)', color: 'var(--text-primary)' }} />
                       ) : (
                         <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>{emp.attendance.totalWorkingDays}</p>
                       )}
@@ -390,14 +390,14 @@ export default function AttendancePage() {
                       <p className="text-sm font-semibold mt-0.5" style={{ color: leaveDays > 0 ? '#dc2626' : '#059669' }}>{leaveDays}</p>
                     </div>
                     <div className="rounded-lg p-2 text-center" style={{ background: 'var(--bg-input)' }}>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>OT Days</p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>OT Hours</p>
                       {editMode ? (
-                        <input type="number" min="0" max="31" value={emp.attendance.overtimeDays}
-                          onChange={(e) => handleFieldChange(emp._id, "overtimeDays", e.target.value)}
+                        <input type="number" min="0" max="300" value={emp.attendance.overtimeHours}
+                          onChange={(e) => handleFieldChange(emp._id, "overtimeHours", e.target.value)}
                           className="w-full px-2 py-1 rounded text-sm text-center outline-none mt-1"
-                          style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)' }} />
+                          style={{ border: '1px solid var(--border-input)', color: 'var(--text-primary)' }} />
                       ) : (
-                        <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--text-secondary)' }}>{emp.attendance.overtimeDays}</p>
+                        <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--text-secondary)' }}>{emp.attendance.overtimeHours}</p>
                       )}
                     </div>
                   </div>

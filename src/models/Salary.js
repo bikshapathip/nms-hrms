@@ -8,12 +8,12 @@ const SalarySchema = new mongoose.Schema({
   // Attendance
   totalWorkingDays: { type: Number, required: true },
   daysWorked: { type: Number, required: true },
+  overtimeHours: { type: Number, default: 0 },
 
-  // Earnings
+  // Earnings (fixed monthly figures)
   basicSalary: { type: Number, required: true },
   hra: { type: Number, default: 0 },
   da: { type: Number, default: 0 },
-  specialAllowance: { type: Number, default: 0 },
   otherAllowance: { type: Number, default: 0 },
   grossSalary: { type: Number, required: true },
 
@@ -21,8 +21,19 @@ const SalarySchema = new mongoose.Schema({
   earnedBasic: { type: Number, required: true },
   earnedHra: { type: Number, default: 0 },
   earnedDa: { type: Number, default: 0 },
-  earnedSpecialAllowance: { type: Number, default: 0 },
   earnedOtherAllowance: { type: Number, default: 0 },
+
+  // Attendance-slab-based earnings (resolved from that month's days present)
+  leaveEncashment: { type: Number, default: 0 },
+  attendanceBonus: { type: Number, default: 0 },
+  performanceBonus: { type: Number, default: 0 },
+  specialAllowance: { type: Number, default: 0 },
+  nightAllowance: { type: Number, default: 0 },
+  travellingAllowance: { type: Number, default: 0 },
+
+  // OT: rate (₹/hour) × overtimeHours worked that month
+  otAmount: { type: Number, default: 0 },
+
   earnedGross: { type: Number, required: true },
 
   // Deductions

@@ -20,7 +20,7 @@ export async function GET(request) {
   await dbConnect();
 
   const payslips = await Salary.find({ month, year })
-    .populate("employee", "employeeId firstName lastName designation department client state city clientLocation")
+    .populate("employee", "employeeId firstName lastName designation client state city clientLocation")
     .lean();
 
   payslips.forEach((p) => {

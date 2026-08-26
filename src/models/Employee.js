@@ -1,5 +1,12 @@
 import mongoose from "mongoose";
 
+const slabSchema = new mongoose.Schema({
+  minDays: { type: Number, required: true },
+  maxDays: { type: Number, required: true },
+  type: { type: String, enum: ["Flat", "Percentage"], default: "Flat" },
+  value: { type: Number, default: 0 },
+}, { _id: false });
+
 const EmployeeSchema = new mongoose.Schema({
   employeeId: { type: String, required: true, unique: true },
   firstName: { type: String, required: true },
@@ -9,16 +16,17 @@ const EmployeeSchema = new mongoose.Schema({
   contactNumber: { type: String, default: "" },
   email: { type: String, default: "" },
   designation: { type: String, required: true },
-  department: { type: String, default: "" },
   client: { type: mongoose.Schema.Types.ObjectId, ref: "Client", default: null },
   clientLocation: { type: String, default: "" },
   dateOfJoining: { type: Date, required: true },
   city: { type: String, default: "" },
   state: { type: String, default: "" },
   address: { type: String, default: "" },
+  addressCity: { type: String, default: "" },
+  addressState: { type: String, default: "" },
+  addressZipCode: { type: String, default: "" },
   maritalStatus: { type: String, enum: ["Single", "Married", "Divorced", "Widowed"], default: "Single" },
-  nthEmployee: { type: String, default: "" },
-  referenceName: { type: String, default: "" },
+  referenceUser: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   remarks: { type: String, default: "" },
 
   // Documents
@@ -32,18 +40,35 @@ const EmployeeSchema = new mongoose.Schema({
   bankAccount: { type: String, default: "" },
   ifscCode: { type: String, default: "" },
 
+  // Salary template this employee's salary was populated from (for reference only)
+  salaryTemplate: { type: mongoose.Schema.Types.ObjectId, ref: "SalaryTemplate", default: null },
+
   // Salary Structure (monthly)
   basicSalary: { type: Number, required: true },
   hra: { type: Number, default: 0 },
   da: { type: Number, default: 0 },
-  specialAllowance: { type: Number, default: 0 },
+  statutoryBonus: { type: Number, default: 0 },
+  leaveEncashmentSlabs: [slabSchema],
+  attendanceBonusSlabs: [slabSchema],
+  performanceBonusSlabs: [slabSchema],
+  specialAllowanceSlabs: [slabSchema],
+  nightAllowanceSlabs: [slabSchema],
+  travellingAllowanceSlabs: [slabSchema],
   otherAllowance: { type: Number, default: 0 },
+  otAmount: { type: Number, default: 0 },
 
   // Deduction flags
   pfEnabled: { type: Boolean, default: true },
+  pfPercent: { type: Number, default: 12 },
+  employerPfEnabled: { type: Boolean, default: true },
+  employerPfPercent: { type: Number, default: 13 },
   esiEnabled: { type: Boolean, default: false },
+  esiPercent: { type: Number, default: 0.75 },
+  employerEsiEnabled: { type: Boolean, default: false },
+  employerEsiPercent: { type: Number, default: 3.25 },
   professionalTax: { type: Number, default: 200 },
   tdsPercent: { type: Number, default: 0 },
+  lwf: { type: Number, default: 0 },
 
   workingStatus: { type: String, enum: ["Active", "Inactive", "Terminated", "Resigned", "On Leave"], default: "Active" },
   isActive: { type: Boolean, default: true },

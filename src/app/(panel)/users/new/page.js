@@ -6,21 +6,21 @@ import Link from "next/link";
 import SearchableSelect from "@/components/SearchableSelect";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
-const inputStyle = { border: '1px solid var(--border-color)', color: 'var(--text-primary)' };
+const inputStyle = { border: '1px solid var(--border-input)', color: 'var(--text-primary)' };
 
 function Input({ label, required, error, ...props }) {
   return (
     <div>
-      <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+      <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>
         {label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}
       </label>
       <input
         {...props}
         required={required}
         className={inputClass}
-        style={{ ...inputStyle, borderColor: error ? 'var(--danger)' : 'var(--border-color)' }}
-        onFocus={(e) => { e.target.style.borderColor = error ? 'var(--danger)' : 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.08)'; }}
-        onBlur={(e) => { e.target.style.borderColor = error ? 'var(--danger)' : 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+        style={{ ...inputStyle, borderColor: error ? 'var(--danger)' : 'var(--border-input)' }}
+        onFocus={(e) => { e.target.style.borderColor = error ? 'var(--danger)' : 'var(--primary)'; }}
+        onBlur={(e) => { e.target.style.borderColor = error ? 'var(--danger)' : 'var(--border-input)'; }}
       />
       {error && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{error}</p>}
     </div>
@@ -113,7 +113,7 @@ export default function NewUserPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>User Type <span style={{ color: 'var(--danger)' }}>*</span></label>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>User Type <span style={{ color: 'var(--danger)' }}>*</span></label>
               <SearchableSelect
                 clearable={false}
                 value={form.userType}

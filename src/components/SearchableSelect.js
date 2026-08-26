@@ -12,7 +12,7 @@ export default function SearchableSelect({
   value,
   onChange,
   options,
-  placeholder = "— Select —",
+  placeholder = "Select",
   disabled = false,
   clearable = true,
   className = "",
@@ -73,10 +73,8 @@ export default function SearchableSelect({
         onClick={() => !disabled && setOpen((o) => !o)}
         className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition flex items-center justify-between gap-2 text-left disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
-          border: `1px solid ${open ? 'var(--primary)' : 'var(--border-color)'}`,
+          border: `1px solid ${open ? 'var(--primary)' : 'var(--border-input)'}`,
           color: selected ? 'var(--text-primary)' : 'var(--text-muted)',
-          background: 'var(--bg-input)',
-          boxShadow: open ? '0 0 0 3px rgba(99,102,241,0.08)' : 'none',
         }}
       >
         <span className="truncate">{selected ? selected.label : placeholder}</span>
@@ -108,7 +106,7 @@ export default function SearchableSelect({
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search..."
               className="w-full px-2.5 py-1.5 rounded-md text-sm outline-none"
-              style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
+              style={{ border: '1px solid var(--border-input)', color: 'var(--text-primary)' }}
             />
           </div>
           <div className="max-h-56 overflow-y-auto py-1">

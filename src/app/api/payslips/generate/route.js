@@ -5,6 +5,8 @@ import dbConnect from "@/lib/mongodb";
 import Employee from "@/models/Employee";
 import Attendance from "@/models/Attendance";
 import Salary from "@/models/Salary";
+import { computeSlabAmount } from "@/lib/salaryCalc";
+import { SLAB_FIELDS } from "@/lib/slabFields";
 
 export async function POST(request) {
   const session = await getServerSession(authOptions);
@@ -36,18 +38,28 @@ export async function POST(request) {
     const ratio = daysWorked / totalWorkingDays;
 
     // Earnings
-    const grossSalary = emp.basicSalary + emp.hra + emp.da + emp.specialAllowance + emp.otherAllowance;
+    const grossSalary = emp.basicSalary + emp.hra + emp.da + emp.otherAllowance;
 
     const earnedBasic = Math.round(emp.basicSalary * ratio);
     const earnedHra = Math.round(emp.hra * ratio);
     const earnedDa = Math.round(emp.da * ratio);
-    const earnedSpecialAllowance = Math.round(emp.specialAllowance * ratio);
     const earnedOtherAllowance = Math.round(emp.otherAllowance * ratio);
-    const earnedGross = earnedBasic + earnedHra + earnedDa + earnedSpecialAllowance + earnedOtherAllowance;
+
+    // Slab-based earnings, resolved from this month's days present
+    const slabAmounts = {};
+    for (const [key] of SLAB_FIELDS) {
+      slabAmounts[key] = computeSlabAmount(emp[`${key}Slabs`], daysWorked, emp.basicSalary);
+    }
+    const slabTotal = Object.values(slabAmounts).reduce((sum, v) => sum + v, 0);
+
+    const overtimeHours = att.overtimeHours || 0;
+    const otAmount = Math.round((emp.otAmount || 0) * overtimeHours);
+
+    const earnedGross = earnedBasic + earnedHra + earnedDa + earnedOtherAllowance + slabTotal + otAmount;
 
     // Deductions
-    const pfDeduction = emp.pfEnabled ? Math.round(earnedBasic * 0.12) : 0;
-    const esiDeduction = emp.esiEnabled && earnedGross <= 21000 ? Math.round(earnedGross * 0.0075) : 0;
+    const pfDeduction = emp.pfEnabled ? Math.round(earnedBasic * ((emp.pfPercent ?? 12) / 100)) : 0;
+    const esiDeduction = emp.esiEnabled && earnedGross <= 21000 ? Math.round(earnedGross * ((emp.esiPercent ?? 0.75) / 100)) : 0;
     const professionalTax = daysWorked > 0 ? emp.professionalTax : 0;
     const tdsDeduction = emp.tdsPercent > 0 ? Math.round(earnedGross * emp.tdsPercent / 100) : 0;
 
@@ -60,17 +72,18 @@ export async function POST(request) {
       year,
       totalWorkingDays,
       daysWorked,
+      overtimeHours,
       basicSalary: emp.basicSalary,
       hra: emp.hra,
       da: emp.da,
-      specialAllowance: emp.specialAllowance,
       otherAllowance: emp.otherAllowance,
       grossSalary,
       earnedBasic,
       earnedHra,
       earnedDa,
-      earnedSpecialAllowance,
       earnedOtherAllowance,
+      ...slabAmounts,
+      otAmount,
       earnedGross,
       pfDeduction,
       esiDeduction,

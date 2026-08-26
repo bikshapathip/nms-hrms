@@ -4,13 +4,19 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Employee from "@/models/Employee";
 import "@/models/Client";
+import "@/models/User";
+import "@/models/SalaryTemplate";
 
 export async function GET(request, { params }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await dbConnect();
-  const employee = await Employee.findById(params.id).populate("client", "clientName locations").lean();
+  const employee = await Employee.findById(params.id)
+    .populate("client", "clientName locations")
+    .populate("referenceUser", "firstName lastName username")
+    .populate("salaryTemplate", "name")
+    .lean();
   if (!employee) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (!employee.name) employee.name = `${employee.firstName || ""} ${employee.lastName || ""}`.trim();
 

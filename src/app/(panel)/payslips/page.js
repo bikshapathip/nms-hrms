@@ -118,7 +118,7 @@ export default function PayslipsPage() {
       <div className="keka-card p-4 mb-6">
         <div className="flex items-end gap-4 flex-wrap">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Month</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>Month</label>
             <SearchableSelect
               className="w-36"
               clearable={false}
@@ -128,7 +128,7 @@ export default function PayslipsPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Year</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>Year</label>
             <SearchableSelect
               className="w-24"
               clearable={false}
@@ -138,7 +138,7 @@ export default function PayslipsPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Client</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>Client</label>
             <SearchableSelect
               className="w-40"
               value={selectedClient}
@@ -148,7 +148,7 @@ export default function PayslipsPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>State</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>State</label>
             <SearchableSelect
               className="w-36"
               value={selectedState}
@@ -158,7 +158,7 @@ export default function PayslipsPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>City</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>City</label>
             <SearchableSelect
               className="w-36"
               value={selectedCity}
@@ -168,7 +168,7 @@ export default function PayslipsPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Location</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>Location</label>
             <SearchableSelect
               className="w-40"
               value={selectedLocation}

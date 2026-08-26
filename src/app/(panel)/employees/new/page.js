@@ -2,21 +2,27 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import SearchableSelect from "@/components/SearchableSelect";
+import BasisTag from "@/components/BasisTag";
+import PercentToggle from "@/components/PercentToggle";
+import SlabField from "@/components/SlabField";
+import { computeSalarySummary } from "@/lib/salaryCalc";
+import { SLAB_FIELDS, initSlabState, slabsFromDoc, slabsToBody } from "@/lib/slabFields";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
-const inputStyle = { border: '1px solid var(--border-color)', color: 'var(--text-primary)' };
+const inputStyle = { border: '1px solid var(--border-input)', color: 'var(--text-primary)' };
 
 function Input({ label, required, ...props }) {
   return (
     <div>
-      <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+      <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>
         {label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}
       </label>
       <input {...props} required={required} className={inputClass} style={inputStyle}
-        onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.08)'; }}
-        onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+        onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; }}
+        onBlur={(e) => { e.target.style.borderColor = 'var(--border-input)'; }}
       />
     </div>
   );
@@ -25,14 +31,14 @@ function Input({ label, required, ...props }) {
 function Select({ label, required, name, value, onChange, options, disabled, placeholder, clearable = true }) {
   return (
     <div>
-      <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+      <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>
         {label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}
       </label>
       <SearchableSelect
         value={value}
         onChange={(v) => onChange({ target: { name, value: v } })}
         options={options}
-        placeholder={placeholder || `— Select ${label} —`}
+        placeholder={placeholder || `Select ${label}`}
         disabled={disabled}
         clearable={clearable}
       />
@@ -40,30 +46,66 @@ function Select({ label, required, name, value, onChange, options, disabled, pla
   );
 }
 
+const EARNING_FIELDS = [
+  ["basicSalary", "Basic Salary", true],
+  ["hra", "HRA"],
+  ["da", "DA (Dearness Allowance)"],
+  ["statutoryBonus", "Statutory Bonus"],
+  ["otherAllowance", "Other Allowance"],
+  ["otAmount", "OT Rate (₹ per Hour)"],
+];
+
+const TEMPLATE_FIELDS = [
+  ...EARNING_FIELDS.map(([name]) => name),
+  "professionalTax", "tdsPercent", "lwf",
+  "pfEnabled", "pfPercent", "employerPfEnabled", "employerPfPercent",
+  "esiEnabled", "esiPercent", "employerEsiEnabled", "employerEsiPercent",
+];
+
 export default function NewEmployeePage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [clients, setClients] = useState([]);
+  const [users, setUsers] = useState([]);
   const [availableStates, setAvailableStates] = useState([]);
   const [availableCities, setAvailableCities] = useState([]);
   const [availableLocations, setAvailableLocations] = useState([]);
+  const [salaryTemplates, setSalaryTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [form, setForm] = useState({
     employeeId: "", firstName: "", lastName: "", gender: "Male",
-    dateOfBirth: "", contactNumber: "", email: "", designation: "", department: "",
+    dateOfBirth: "", contactNumber: "", email: "", designation: "",
     client: "", state: "", city: "", clientLocation: "", dateOfJoining: "",
-    address: "", maritalStatus: "Single",
-    nthEmployee: "", referenceName: "", remarks: "",
+    address: "", addressCity: "", addressState: "", addressZipCode: "", maritalStatus: "Single",
+    referenceUser: "", remarks: "",
     panNumber: "", aadharNumber: "", esicNumber: "", uanNumber: "",
     bankName: "", bankAccount: "", ifscCode: "",
-    basicSalary: "", hra: "", da: "", specialAllowance: "", otherAllowance: "",
-    pfEnabled: true, esiEnabled: false, professionalTax: "200", tdsPercent: "0",
+    salaryTemplate: "",
+    basicSalary: "", hra: "", da: "", statutoryBonus: "", otherAllowance: "",
+    otAmount: "",
+    pfEnabled: true, pfPercent: "12", employerPfEnabled: true, employerPfPercent: "13",
+    esiEnabled: false, esiPercent: "0.75", employerEsiEnabled: false, employerEsiPercent: "3.25",
+    professionalTax: "200", tdsPercent: "0", lwf: "",
     workingStatus: "Active",
   });
+  const [slabs, setSlabs] = useState(initSlabState());
+
+  function addSlab(field) { setSlabs((prev) => ({ ...prev, [field]: [...prev[field], { minDays: "", maxDays: "", type: "Flat", value: "" }] })); }
+  function removeSlab(field, idx) { setSlabs((prev) => ({ ...prev, [field]: prev[field].filter((_, i) => i !== idx) })); }
+  function updateSlab(field, idx, key, value) { setSlabs((prev) => ({ ...prev, [field]: prev[field].map((s, i) => i === idx ? { ...s, [key]: value } : s) })); }
 
   useEffect(() => {
     fetch("/api/clients/list").then(r => r.json()).then(data => setClients(Array.isArray(data) ? data : []));
+    fetch("/api/users/list").then(r => r.json()).then(data => setUsers(Array.isArray(data) ? data : []));
   }, []);
+
+  useEffect(() => {
+    if (session?.user?.userType === "Recruiter" && session.user.id) {
+      setForm((prev) => (prev.referenceUser ? prev : { ...prev, referenceUser: session.user.id }));
+    }
+  }, [session]);
 
   useEffect(() => {
     const sel = clients.find(c => c._id === form.client);
@@ -80,15 +122,61 @@ export default function NewEmployeePage() {
     setAvailableLocations((sel?.locations || []).filter(l => l.state === form.state && l.city === form.city).map(l => l.location).filter(Boolean));
   }, [clients, form.client, form.state, form.city]);
 
+  // Once client + branch (state/city/location) are picked, fetch matching salary templates
+  useEffect(() => {
+    if (!form.client || !form.clientLocation) {
+      setSalaryTemplates([]);
+      return;
+    }
+    setLoadingTemplates(true);
+    const params = new URLSearchParams({ client: form.client, limit: "0" });
+    if (form.state) params.set("state", form.state);
+    if (form.city) params.set("city", form.city);
+    if (form.clientLocation) params.set("location", form.clientLocation);
+    fetch(`/api/salary-templates?${params}`)
+      .then(r => r.json())
+      .then(data => {
+        const templates = data.templates || [];
+        const matched = templates.filter(t => t.gender === "Any" || t.gender === form.gender);
+        setSalaryTemplates(matched);
+      })
+      .catch(() => setSalaryTemplates([]))
+      .finally(() => setLoadingTemplates(false));
+  }, [form.client, form.state, form.city, form.clientLocation, form.gender]);
+
+  // Clear the selected template if it no longer matches the available list
+  useEffect(() => {
+    if (form.salaryTemplate && !salaryTemplates.some(t => t._id === form.salaryTemplate)) {
+      setForm((prev) => ({ ...prev, salaryTemplate: "" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [salaryTemplates]);
+
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
     setForm((prev) => {
       const next = { ...prev, [name]: type === "checkbox" ? checked : value };
-      if (name === "client") { next.state = ""; next.city = ""; next.clientLocation = ""; }
-      else if (name === "state") { next.city = ""; next.clientLocation = ""; }
-      else if (name === "city") { next.clientLocation = ""; }
+      if (name === "client") { next.state = ""; next.city = ""; next.clientLocation = ""; next.salaryTemplate = ""; }
+      else if (name === "state") { next.city = ""; next.clientLocation = ""; next.salaryTemplate = ""; }
+      else if (name === "city") { next.clientLocation = ""; next.salaryTemplate = ""; }
+      else if (name === "clientLocation") { next.salaryTemplate = ""; }
       return next;
     });
+  }
+
+  function handleTemplateChange(e) {
+    const id = e.target.value;
+    if (!id) { setForm((prev) => ({ ...prev, salaryTemplate: "" })); return; }
+    const t = salaryTemplates.find((tpl) => tpl._id === id);
+    if (!t) return;
+    setForm((prev) => {
+      const next = { ...prev, salaryTemplate: id };
+      for (const field of TEMPLATE_FIELDS) {
+        next[field] = typeof t[field] === "boolean" ? t[field] : (t[field] ?? 0).toString();
+      }
+      return next;
+    });
+    setSlabs(slabsFromDoc(t));
   }
 
   async function handleSubmit(e) {
@@ -99,10 +187,16 @@ export default function NewEmployeePage() {
       const body = {
         ...form,
         client: form.client || null,
+        referenceUser: form.referenceUser || null,
+        salaryTemplate: form.salaryTemplate || null,
         basicSalary: Number(form.basicSalary) || 0, hra: Number(form.hra) || 0,
-        da: Number(form.da) || 0, specialAllowance: Number(form.specialAllowance) || 0,
-        otherAllowance: Number(form.otherAllowance) || 0,
+        da: Number(form.da) || 0, statutoryBonus: Number(form.statutoryBonus) || 0,
+        otherAllowance: Number(form.otherAllowance) || 0, otAmount: Number(form.otAmount) || 0,
         professionalTax: Number(form.professionalTax) || 0, tdsPercent: Number(form.tdsPercent) || 0,
+        lwf: Number(form.lwf) || 0,
+        pfPercent: Number(form.pfPercent) || 0, employerPfPercent: Number(form.employerPfPercent) || 0,
+        esiPercent: Number(form.esiPercent) || 0, employerEsiPercent: Number(form.employerEsiPercent) || 0,
+        ...slabsToBody(slabs),
       };
       const res = await fetch("/api/employees", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
@@ -111,6 +205,8 @@ export default function NewEmployeePage() {
       router.push("/employees");
     } catch (err) { setError(err.message); } finally { setSaving(false); }
   }
+
+  const summary = computeSalarySummary(form);
 
   return (
     <div>
@@ -140,8 +236,8 @@ export default function NewEmployeePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Input label="Employee ID" name="employeeId" value={form.employeeId} onChange={handleChange} required placeholder="EMP001" />
-            <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} required />
-            <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} required />
+            <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} required placeholder="e.g. John" />
+            <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} required placeholder="e.g. Doe" />
             <Select label="Gender" name="gender" value={form.gender} onChange={handleChange} required clearable={false}
               options={["Male", "Female", "Other"]} />
             <Input label="Date of Birth" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
@@ -149,12 +245,46 @@ export default function NewEmployeePage() {
             <Input label="Email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="employee@email.com" />
             <Select label="Marital Status" name="maritalStatus" value={form.maritalStatus} onChange={handleChange} clearable={false}
               options={["Single", "Married", "Divorced", "Widowed"]} />
-            <div className="sm:col-span-2 lg:col-span-3">
-              <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Address</label>
-              <input name="address" value={form.address} onChange={handleChange} className={inputClass} style={inputStyle} placeholder="Full address"
-                onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.08)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+            <Input label="Address" name="address" value={form.address} onChange={handleChange} placeholder="House no., street" />
+            <Input label="City" name="addressCity" value={form.addressCity} onChange={handleChange} placeholder="e.g. Hyderabad" />
+            <Input label="State" name="addressState" value={form.addressState} onChange={handleChange} placeholder="e.g. Telangana" />
+            <Input label="Zip Code" name="addressZipCode" value={form.addressZipCode} onChange={handleChange} placeholder="6 digit" maxLength={6} />
+          </div>
+        </div>
+
+        {/* Client, Branch & Salary Template */}
+        <div className="keka-card p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#f0f0ff' }}>
+              <svg className="w-4 h-4" style={{ color: '#6366f1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            </div>
+            <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Client, Branch &amp; Salary Template</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Select label="Client" name="client" value={form.client} onChange={handleChange}
+              options={clients.map(c => ({ value: c._id, label: c.clientName }))} />
+            <Select label="State" name="state" value={form.state} onChange={handleChange} disabled={!form.client}
+              options={availableStates} />
+            <Select label="City" name="city" value={form.city} onChange={handleChange} disabled={!form.state}
+              options={availableCities} />
+            <Select label="Location" name="clientLocation" value={form.clientLocation} onChange={handleChange} disabled={!form.city}
+              options={availableLocations} />
+            <div className="sm:col-span-2 lg:col-span-4">
+              <Select
+                label="Salary Template"
+                name="salaryTemplate"
+                value={form.salaryTemplate}
+                onChange={handleTemplateChange}
+                disabled={!form.clientLocation || loadingTemplates}
+                placeholder={loadingTemplates ? "Loading templates..." : (form.clientLocation ? "Select a matching template" : "Select client & branch first")}
+                options={salaryTemplates.map(t => ({ value: t._id, label: `${t.name} (${t.role} · ${t.gender})` }))}
               />
+              {form.clientLocation && !loadingTemplates && salaryTemplates.length === 0 && (
+                <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>No salary template found for this branch — enter the salary structure manually below.</p>
+              )}
+              {form.salaryTemplate && (
+                <p className="text-xs mt-1.5" style={{ color: '#059669' }}>Salary structure below has been auto-filled from the selected template. You can still adjust it.</p>
+              )}
             </div>
           </div>
         </div>
@@ -168,26 +298,15 @@ export default function NewEmployeePage() {
             <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Employment Details</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Input label="Designation" name="designation" value={form.designation} onChange={handleChange} required />
-            <Input label="Department" name="department" value={form.department} onChange={handleChange} />
+            <Input label="Designation" name="designation" value={form.designation} onChange={handleChange} required placeholder="e.g. Pick & Packer" />
             <Input label="Date of Joining" name="dateOfJoining" type="date" value={form.dateOfJoining} onChange={handleChange} required />
-            <Select label="Working Status" name="workingStatus" value={form.workingStatus} onChange={handleChange} clearable={false}
-              options={["Active", "Inactive", "Terminated", "Resigned", "On Leave"]} />
-            <Select label="Client" name="client" value={form.client} onChange={handleChange}
-              options={clients.map(c => ({ value: c._id, label: c.clientName }))} />
-            <Select label="State" name="state" value={form.state} onChange={handleChange} disabled={!form.client}
-              options={availableStates} />
-            <Select label="City" name="city" value={form.city} onChange={handleChange} disabled={!form.state}
-              options={availableCities} />
-            <Select label="Location" name="clientLocation" value={form.clientLocation} onChange={handleChange} disabled={!form.city}
-              options={availableLocations} />
-            <Input label="NTH" name="nthEmployee" value={form.nthEmployee} onChange={handleChange} placeholder="e.g. 5th employee" />
-            <Input label="Reference Name (Recruiter)" name="referenceName" value={form.referenceName} onChange={handleChange} />
+            <Select label="Reference Name (Recruiter)" name="referenceUser" value={form.referenceUser} onChange={handleChange}
+              options={users.map(u => ({ value: u._id, label: `${u.firstName} ${u.lastName} (${u.userType})` }))} />
             <div className="sm:col-span-2 lg:col-span-4">
-              <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>Remarks</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>Remarks</label>
               <input name="remarks" value={form.remarks} onChange={handleChange} className={inputClass} style={inputStyle} placeholder="Any additional notes"
-                onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.08)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--border-input)'; }}
               />
             </div>
           </div>
@@ -204,8 +323,8 @@ export default function NewEmployeePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Input label="PAN Number" name="panNumber" value={form.panNumber} onChange={handleChange} placeholder="ABCDE1234F" />
             <Input label="Aadhar Number" name="aadharNumber" value={form.aadharNumber} onChange={handleChange} placeholder="1234 5678 9012" maxLength={12} />
-            <Input label="ESIC Number" name="esicNumber" value={form.esicNumber} onChange={handleChange} />
-            <Input label="UAN Number" name="uanNumber" value={form.uanNumber} onChange={handleChange} />
+            <Input label="ESIC Number" name="esicNumber" value={form.esicNumber} onChange={handleChange} placeholder="e.g. 3412345678" />
+            <Input label="UAN Number" name="uanNumber" value={form.uanNumber} onChange={handleChange} placeholder="12 digit UAN" />
           </div>
         </div>
 
@@ -218,8 +337,8 @@ export default function NewEmployeePage() {
             <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Bank Details</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Input label="Bank Name" name="bankName" value={form.bankName} onChange={handleChange} />
-            <Input label="Account Number" name="bankAccount" value={form.bankAccount} onChange={handleChange} />
+            <Input label="Bank Name" name="bankName" value={form.bankName} onChange={handleChange} placeholder="e.g. State Bank of India" />
+            <Input label="Account Number" name="bankAccount" value={form.bankAccount} onChange={handleChange} placeholder="Bank account number" />
             <Input label="IFSC Code" name="ifscCode" value={form.ifscCode} onChange={handleChange} placeholder="SBIN0001234" />
           </div>
         </div>
@@ -233,12 +352,31 @@ export default function NewEmployeePage() {
             <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Salary Structure (Monthly ₹)</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Input label="Basic Salary" name="basicSalary" type="number" value={form.basicSalary} onChange={handleChange} required />
-            <Input label="HRA" name="hra" type="number" value={form.hra} onChange={handleChange} />
-            <Input label="DA (Dearness Allowance)" name="da" type="number" value={form.da} onChange={handleChange} />
-            <Input label="Special Allowance" name="specialAllowance" type="number" value={form.specialAllowance} onChange={handleChange} />
-            <Input label="Other Allowance" name="otherAllowance" type="number" value={form.otherAllowance} onChange={handleChange} />
+            {EARNING_FIELDS.map(([name, label, required]) => (
+              <Input key={name} label={label} name={name} type="number" value={form[name]} onChange={handleChange} required={required} placeholder="0" />
+            ))}
           </div>
+        </div>
+
+        {/* Attendance-Based Pay Slabs */}
+        <div className="keka-card p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#ecfdf5' }}>
+              <svg className="w-4 h-4" style={{ color: '#10b981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            </div>
+            <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Attendance-Based Pay Slabs</h2>
+          </div>
+          <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Each based on days present in the month — resolved automatically at payslip time from that month&apos;s attendance.</p>
+          {SLAB_FIELDS.map(([key, label]) => (
+            <SlabField
+              key={key}
+              label={label}
+              slabs={slabs[key]}
+              onAdd={() => addSlab(key)}
+              onRemove={(idx) => removeSlab(key, idx)}
+              onUpdate={(idx, field, value) => updateSlab(key, idx, field, value)}
+            />
+          ))}
         </div>
 
         {/* Deductions */}
@@ -250,16 +388,72 @@ export default function NewEmployeePage() {
             <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Deductions</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <label className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg cursor-pointer" style={{ border: '1px solid var(--border-color)' }}>
-              <input name="pfEnabled" type="checkbox" checked={form.pfEnabled} onChange={handleChange} className="w-4 h-4 rounded" style={{ accentColor: 'var(--primary)' }} />
-              <span className="text-sm" style={{ color: 'var(--text-on-card)' }}>PF (12% of Basic)</span>
-            </label>
-            <label className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg cursor-pointer" style={{ border: '1px solid var(--border-color)' }}>
-              <input name="esiEnabled" type="checkbox" checked={form.esiEnabled} onChange={handleChange} className="w-4 h-4 rounded" style={{ accentColor: 'var(--primary)' }} />
-              <span className="text-sm" style={{ color: 'var(--text-on-card)' }}>ESI (0.75%)</span>
-            </label>
-            <Input label="Professional Tax (₹)" name="professionalTax" type="number" value={form.professionalTax} onChange={handleChange} />
-            <Input label="TDS (%)" name="tdsPercent" type="number" step="0.1" value={form.tdsPercent} onChange={handleChange} />
+            <Input label="Professional Tax (₹)" name="professionalTax" type="number" value={form.professionalTax} onChange={handleChange} placeholder="0" />
+            <Input label="TDS (%)" name="tdsPercent" type="number" step="0.1" value={form.tdsPercent} onChange={handleChange} placeholder="0" />
+            <Input label="LWF (₹)" name="lwf" type="number" value={form.lwf} onChange={handleChange} placeholder="0" />
+            <div />
+            <PercentToggle label="Employee PF" name="pfEnabled" checked={form.pfEnabled} percentName="pfPercent" percentValue={form.pfPercent} onChange={handleChange} />
+            <PercentToggle label="Employer PF" name="employerPfEnabled" checked={form.employerPfEnabled} percentName="employerPfPercent" percentValue={form.employerPfPercent} onChange={handleChange} />
+            <PercentToggle label="Employee ESI" name="esiEnabled" checked={form.esiEnabled} percentName="esiPercent" percentValue={form.esiPercent} onChange={handleChange} />
+            <PercentToggle label="Employer ESI" name="employerEsiEnabled" checked={form.employerEsiEnabled} percentName="employerEsiPercent" percentValue={form.employerEsiPercent} onChange={handleChange} />
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className="keka-card p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#eff6ff' }}>
+              <svg className="w-4 h-4" style={{ color: '#3b82f6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+            </div>
+            <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Summary</h2>
+          </div>
+          <div className="max-w-md space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span style={{ color: 'var(--text-secondary)' }}>Basic Salary</span>
+              <span style={{ color: 'var(--text-primary)' }}>₹{(Number(form.basicSalary) || 0).toLocaleString("en-IN")}</span>
+            </div>
+            <div className="flex items-center justify-between pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Gross Earnings</span>
+              <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>₹{summary.grossEarnings.toLocaleString("en-IN")}</span>
+            </div>
+            {form.pfEnabled && (
+              <div className="flex items-center justify-between">
+                <span style={{ color: 'var(--text-secondary)' }}>PF ({form.pfPercent || 0}%)<BasisTag basis="Basic" /></span>
+                <span style={{ color: 'var(--danger)' }}>− ₹{summary.pfAmount.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            {form.esiEnabled && (
+              <div className="flex items-center justify-between">
+                <span style={{ color: 'var(--text-secondary)' }}>ESI ({form.esiPercent || 0}%)<BasisTag basis="Gross" /></span>
+                <span style={{ color: 'var(--danger)' }}>− ₹{summary.esiAmount.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            {summary.professionalTax > 0 && (
+              <div className="flex items-center justify-between">
+                <span style={{ color: 'var(--text-secondary)' }}>Professional Tax<BasisTag basis="Flat" /></span>
+                <span style={{ color: 'var(--danger)' }}>− ₹{summary.professionalTax.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            {summary.tdsAmount > 0 && (
+              <div className="flex items-center justify-between">
+                <span style={{ color: 'var(--text-secondary)' }}>TDS ({form.tdsPercent || 0}%)<BasisTag basis="Gross" /></span>
+                <span style={{ color: 'var(--danger)' }}>− ₹{summary.tdsAmount.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            {summary.lwf > 0 && (
+              <div className="flex items-center justify-between">
+                <span style={{ color: 'var(--text-secondary)' }}>LWF<BasisTag basis="Flat" /></span>
+                <span style={{ color: 'var(--danger)' }}>− ₹{summary.lwf.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Total Deductions</span>
+              <span className="font-semibold" style={{ color: 'var(--danger)' }}>− ₹{summary.totalDeductions.toLocaleString("en-IN")}</span>
+            </div>
+            <div className="flex items-center justify-between pt-2 text-base" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <span className="font-bold" style={{ color: 'var(--text-primary)' }}>Net Salary</span>
+              <span className="font-bold" style={{ color: '#059669' }}>₹{summary.netSalary.toLocaleString("en-IN")}</span>
+            </div>
           </div>
         </div>
 

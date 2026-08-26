@@ -44,13 +44,13 @@ export async function GET(request) {
             totalWorkingDays: att.totalWorkingDays,
             daysWorked: att.daysWorked,
             leaveDays: att.leaveDays,
-            overtimeDays: att.overtimeDays,
+            overtimeHours: att.overtimeHours,
           }
         : {
             totalWorkingDays: 26,
             daysWorked: 0,
             leaveDays: 0,
-            overtimeDays: 0,
+            overtimeHours: 0,
           },
     };
   });
@@ -64,7 +64,7 @@ export async function PUT(request) {
 
   await dbConnect();
   const body = await request.json();
-  const { employeeId, month, year, totalWorkingDays, daysWorked, leaveDays, overtimeDays } = body;
+  const { employeeId, month, year, totalWorkingDays, daysWorked, leaveDays, overtimeHours } = body;
 
   if (!employeeId || !month || !year) {
     return NextResponse.json({ error: "Employee ID, month, and year are required" }, { status: 400 });
@@ -79,7 +79,7 @@ export async function PUT(request) {
       totalWorkingDays: totalWorkingDays || 26,
       daysWorked: daysWorked || 0,
       leaveDays: leaveDays || 0,
-      overtimeDays: overtimeDays || 0,
+      overtimeHours: overtimeHours || 0,
     },
     { upsert: true, new: true, runValidators: true }
   );
