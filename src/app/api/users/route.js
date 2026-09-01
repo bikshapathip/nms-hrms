@@ -22,16 +22,15 @@ export async function GET(request) {
   const safeSortField = allowedSortFields.includes(sortField) ? sortField : "createdAt";
   const sortQuery = { [safeSortField]: sortOrder };
 
-  const filter = search
-    ? {
-        $or: [
-          { firstName: { $regex: search, $options: "i" } },
-          { lastName: { $regex: search, $options: "i" } },
-          { username: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } },
-        ],
-      }
-    : {};
+  const filter = { _id: { $ne: session.user.id } };
+  if (search) {
+    filter.$or = [
+      { firstName: { $regex: search, $options: "i" } },
+      { lastName: { $regex: search, $options: "i" } },
+      { username: { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
+    ];
+  }
 
   const total = await User.countDocuments(filter);
 

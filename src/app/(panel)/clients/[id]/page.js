@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { INDIAN_STATES } from "@/lib/indianStates";
 import SearchableSelect from "@/components/SearchableSelect";
+import SweetAlert, { showUpdateConfirm, showSuccessUpdate, showError, showLoading } from "@/components/common/SweetAlert";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 
@@ -33,6 +34,7 @@ export default function EditClientPage() {
   const [form, setForm] = useState({ clientName: "", email: "", phone: "", gstNumber: "", cinNumber: "", isActive: true });
   const emptyLocation = { state: "", city: "", location: "", address: "" };
   const [locations, setLocations] = useState([{ ...emptyLocation }]);
+  const [alertConfig, setAlertConfig] = useState(null);
 
   useEffect(() => {
     async function fetchClient() {
@@ -78,18 +80,36 @@ export default function EditClientPage() {
     return errs;
   }
 
-  async function handleSubmit(e) {
+  async function submitUpdate() {
+    setSaving(true); setErrors({});
+    try {
+      setAlertConfig(showLoading("Updating client..."));
+      const res = await fetch(`/api/clients/${params.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, locations: locations.filter(l => l.location.trim()) }) });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.errors) setErrors(data.errors); else setErrors({ general: data.error });
+        setAlertConfig(showError(data.error || "Failed to update client", () => setAlertConfig(null)));
+        return;
+      }
+      setAlertConfig(showSuccessUpdate("Client updated successfully!", () => { setAlertConfig(null); router.push("/clients"); }));
+    } catch (err) {
+      setErrors({ general: "Something went wrong" });
+      setAlertConfig(showError("Something went wrong", () => setAlertConfig(null)));
+    }
+    finally { setSaving(false); }
+  }
+
+  function handleSubmit(e) {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    setSaving(true); setErrors({});
-    try {
-      const res = await fetch(`/api/clients/${params.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, locations: locations.filter(l => l.location.trim()) }) });
-      const data = await res.json();
-      if (!res.ok) { if (data.errors) setErrors(data.errors); else setErrors({ general: data.error }); return; }
-      router.push("/clients");
-    } catch (err) { setErrors({ general: "Something went wrong" }); }
-    finally { setSaving(false); }
+    setAlertConfig(
+      showUpdateConfirm(
+        "Do you want to update this client's details?",
+        async () => submitUpdate(),
+        () => setAlertConfig(null)
+      )
+    );
   }
 
   if (loading) {
@@ -105,13 +125,30 @@ export default function EditClientPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm mb-6">
-        <Link href="/clients" style={{ color: '#6366f1' }} className="font-medium hover:underline">Clients</Link>
-        <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        <span style={{ color: 'var(--text-secondary)' }}>Edit Client</span>
+      {alertConfig && (
+        <SweetAlert
+          isOpen={!!alertConfig}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onConfirm={alertConfig.onConfirm}
+          onCancel={alertConfig.onCancel}
+          confirmText={alertConfig.confirmText}
+          cancelText={alertConfig.cancelText}
+          variant={alertConfig.variant}
+        />
+      )}
+      <div
+        className="rounded-2xl mb-6 px-5 py-3 sm:px-6 sm:py-3.5"
+        style={{ background: 'var(--heading-bg)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <div className="flex items-center gap-2 text-sm mb-1">
+          <Link href="/clients" style={{ color: '#9ca0c7' }} className="font-medium hover:underline">Clients</Link>
+          <svg className="w-4 h-4" style={{ color: '#9ca0c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <span style={{ color: '#9ca0c7' }}>Edit Client</span>
+        </div>
+        <h1 className="text-lg sm:text-xl font-bold text-white">Edit Client</h1>
       </div>
-
-      <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Edit Client</h1>
 
       {errors.general && (
         <div className="flex items-center gap-2 p-3 rounded-lg text-sm mb-5" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>

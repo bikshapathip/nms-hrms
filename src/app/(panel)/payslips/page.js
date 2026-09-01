@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import SearchableSelect from "@/components/SearchableSelect";
+import SweetAlert, { showCreateConfirm, showSuccessCreate, showError, showLoading } from "@/components/common/SweetAlert";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -18,7 +19,7 @@ export default function PayslipsPage() {
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [message, setMessage] = useState("");
+  const [alertConfig, setAlertConfig] = useState(null);
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState("");
   const [selectedState, setSelectedState] = useState("");
@@ -66,7 +67,6 @@ export default function PayslipsPage() {
   async function fetchPayslips() {
     setLoading(true);
     setFetched(false);
-    setMessage("");
     try {
       const res = await fetch(`/api/payslips?month=${month}&year=${year}`);
       const data = await res.json();
@@ -81,23 +81,34 @@ export default function PayslipsPage() {
     }
   }
 
-  async function generatePayslips() {
+  async function performGenerate() {
     setGenerating(true);
-    setMessage("");
     try {
+      setAlertConfig(showLoading("Generating payslips..."));
       const res = await fetch("/api/payslips/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ month, year }),
       });
       const data = await res.json();
-      setMessage(data.message || `Generated ${data.count} payslips`);
+      if (!res.ok) throw new Error(data.error || "Failed to generate payslips");
+      setAlertConfig(showSuccessCreate(data.message || `Generated ${data.count} payslips`, () => setAlertConfig(null)));
       fetchPayslips();
     } catch (err) {
-      setMessage("Error generating payslips");
+      setAlertConfig(showError(err.message || "Error generating payslips", () => setAlertConfig(null)));
     } finally {
       setGenerating(false);
     }
+  }
+
+  function generatePayslips() {
+    setAlertConfig(
+      showCreateConfirm(
+        `Do you want to generate payslips for ${MONTHS[month - 1]} ${year}?`,
+        async () => performGenerate(),
+        () => setAlertConfig(null)
+      )
+    );
   }
 
   const years = [];
@@ -109,9 +120,25 @@ export default function PayslipsPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Payslips</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Generate and manage monthly payslips</p>
+      {alertConfig && (
+        <SweetAlert
+          isOpen={!!alertConfig}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onConfirm={alertConfig.onConfirm}
+          onCancel={alertConfig.onCancel}
+          confirmText={alertConfig.confirmText}
+          cancelText={alertConfig.cancelText}
+          variant={alertConfig.variant}
+        />
+      )}
+      <div
+        className="rounded-2xl mb-6 px-5 py-3 sm:px-6 sm:py-3.5"
+        style={{ background: 'var(--heading-bg)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <h1 className="text-lg sm:text-xl font-bold text-white">Payslips</h1>
+        <p className="text-xs mt-0.5" style={{ color: '#9ca0c7' }}>Generate and manage monthly payslips</p>
       </div>
 
       {/* Controls */}
@@ -195,13 +222,6 @@ export default function PayslipsPage() {
           )}
         </div>
       </div>
-
-      {message && (
-        <div className="flex items-center gap-2 p-3 rounded-lg text-sm mb-5" style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-          {message}
-        </div>
-      )}
 
       {/* Summary Cards */}
       {fetched && payslips.length > 0 && (

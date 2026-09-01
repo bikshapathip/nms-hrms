@@ -10,6 +10,7 @@ import PercentToggle from "@/components/PercentToggle";
 import SlabField from "@/components/SlabField";
 import { computeSalarySummary } from "@/lib/salaryCalc";
 import { SLAB_FIELDS, initSlabState, slabsFromDoc, slabsToBody } from "@/lib/slabFields";
+import SweetAlert, { showCreateConfirm, showSuccessCreate, showError, showLoading } from "@/components/common/SweetAlert";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 const inputStyle = { border: '1px solid var(--border-input)', color: 'var(--text-primary)' };
@@ -91,6 +92,7 @@ export default function NewEmployeePage() {
     workingStatus: "Active",
   });
   const [slabs, setSlabs] = useState(initSlabState());
+  const [alertConfig, setAlertConfig] = useState(null);
 
   function addSlab(field) { setSlabs((prev) => ({ ...prev, [field]: [...prev[field], { minDays: "", maxDays: "", type: "Flat", value: "" }] })); }
   function removeSlab(field, idx) { setSlabs((prev) => ({ ...prev, [field]: prev[field].filter((_, i) => i !== idx) })); }
@@ -179,11 +181,11 @@ export default function NewEmployeePage() {
     setSlabs(slabsFromDoc(t));
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function submitCreate() {
     setError("");
     setSaving(true);
     try {
+      setAlertConfig(showLoading("Creating employee..."));
       const body = {
         ...form,
         client: form.client || null,
@@ -202,21 +204,52 @@ export default function NewEmployeePage() {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
       if (!res.ok) { const data = await res.json(); throw new Error(data.error || "Failed to create employee"); }
-      router.push("/employees");
-    } catch (err) { setError(err.message); } finally { setSaving(false); }
+      setAlertConfig(showSuccessCreate("Employee created successfully!", () => { setAlertConfig(null); router.push("/employees"); }));
+    } catch (err) {
+      setError(err.message);
+      setAlertConfig(showError(err.message || "Failed to create employee", () => setAlertConfig(null)));
+    } finally { setSaving(false); }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    setAlertConfig(
+      showCreateConfirm(
+        "Do you want to add this new employee?",
+        async () => submitCreate(),
+        () => setAlertConfig(null)
+      )
+    );
   }
 
   const summary = computeSalarySummary(form);
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm mb-6">
-        <Link href="/employees" style={{ color: 'var(--primary)' }} className="font-medium hover:underline">Employees</Link>
-        <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        <span style={{ color: 'var(--text-secondary)' }}>Add New</span>
+      {alertConfig && (
+        <SweetAlert
+          isOpen={!!alertConfig}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onConfirm={alertConfig.onConfirm}
+          onCancel={alertConfig.onCancel}
+          confirmText={alertConfig.confirmText}
+          cancelText={alertConfig.cancelText}
+          variant={alertConfig.variant}
+        />
+      )}
+      <div
+        className="rounded-2xl mb-6 px-5 py-3 sm:px-6 sm:py-3.5"
+        style={{ background: 'var(--heading-bg)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <div className="flex items-center gap-2 text-sm mb-1">
+          <Link href="/employees" style={{ color: '#9ca0c7' }} className="font-medium hover:underline">Employees</Link>
+          <svg className="w-4 h-4" style={{ color: '#9ca0c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <span style={{ color: '#9ca0c7' }}>Add New</span>
+        </div>
+        <h1 className="text-lg sm:text-xl font-bold text-white">Add New Employee</h1>
       </div>
-
-      <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Add New Employee</h1>
 
       {error && (
         <div className="flex items-center gap-2 p-3 rounded-lg text-sm mb-5" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
@@ -301,6 +334,7 @@ export default function NewEmployeePage() {
             <Input label="Designation" name="designation" value={form.designation} onChange={handleChange} required placeholder="e.g. Pick & Packer" />
             <Input label="Date of Joining" name="dateOfJoining" type="date" value={form.dateOfJoining} onChange={handleChange} required />
             <Select label="Reference Name (Recruiter)" name="referenceUser" value={form.referenceUser} onChange={handleChange}
+              disabled={session?.user?.userType === "Recruiter"}
               options={users.map(u => ({ value: u._id, label: `${u.firstName} ${u.lastName} (${u.userType})` }))} />
             <div className="sm:col-span-2 lg:col-span-4">
               <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>Remarks</label>

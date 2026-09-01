@@ -72,19 +72,19 @@ export default function EmployeePayrollPage() {
     <div>
       {downloading && <FullPageLoader text="Downloading Payslip..." />}
 
-      <div className="flex items-center gap-2 text-sm mb-6">
-        <Link href="/employees" style={{ color: 'var(--primary)' }} className="font-medium hover:underline">Employees</Link>
-        <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        <Link href={`/employees/${params.id}`} style={{ color: 'var(--primary)' }} className="font-medium hover:underline">{employee.name}</Link>
-        <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        <span style={{ color: 'var(--text-secondary)' }}>Payroll</span>
-      </div>
-
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{employee.name}&apos;s Payroll</h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{employee.employeeId} · {employee.designation}</p>
+      <div
+        className="rounded-2xl mb-6 px-5 py-3 sm:px-6 sm:py-3.5"
+        style={{ background: 'var(--heading-bg)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <div className="flex items-center gap-2 text-sm mb-1">
+          <Link href="/employees" style={{ color: '#9ca0c7' }} className="font-medium hover:underline">Employees</Link>
+          <svg className="w-4 h-4" style={{ color: '#9ca0c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <Link href={`/employees/${params.id}`} style={{ color: '#9ca0c7' }} className="font-medium hover:underline">{employee.name}</Link>
+          <svg className="w-4 h-4" style={{ color: '#9ca0c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <span style={{ color: '#9ca0c7' }}>Payroll</span>
         </div>
+        <h1 className="text-lg sm:text-xl font-bold text-white">{employee.name}&apos;s Payroll</h1>
+        <p className="text-xs mt-0.5" style={{ color: '#9ca0c7' }}>{employee.employeeId} · {employee.designation}</p>
       </div>
 
       {payslips.length > 0 && (

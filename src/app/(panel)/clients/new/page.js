@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { INDIAN_STATES } from "@/lib/indianStates";
 import SearchableSelect from "@/components/SearchableSelect";
+import SweetAlert, { showCreateConfirm, showSuccessCreate, showError, showLoading } from "@/components/common/SweetAlert";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 
@@ -31,6 +32,7 @@ export default function NewClientPage() {
   const [form, setForm] = useState({ clientName: "", email: "", phone: "", gstNumber: "", cinNumber: "" });
   const emptyLocation = { state: "", city: "", location: "", address: "" };
   const [locations, setLocations] = useState([{ ...emptyLocation }]);
+  const [alertConfig, setAlertConfig] = useState(null);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -54,29 +56,64 @@ export default function NewClientPage() {
     return errs;
   }
 
-  async function handleSubmit(e) {
+  async function submitCreate() {
+    setSaving(true); setErrors({});
+    try {
+      setAlertConfig(showLoading("Creating client..."));
+      const res = await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, locations: locations.filter(l => l.location.trim()) }) });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.errors) setErrors(data.errors); else setErrors({ general: data.error });
+        setAlertConfig(showError(data.error || "Failed to create client", () => setAlertConfig(null)));
+        return;
+      }
+      setAlertConfig(showSuccessCreate("Client created successfully!", () => { setAlertConfig(null); router.push("/clients"); }));
+    } catch (err) {
+      setErrors({ general: "Something went wrong" });
+      setAlertConfig(showError("Something went wrong", () => setAlertConfig(null)));
+    }
+    finally { setSaving(false); }
+  }
+
+  function handleSubmit(e) {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    setSaving(true); setErrors({});
-    try {
-      const res = await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, locations: locations.filter(l => l.location.trim()) }) });
-      const data = await res.json();
-      if (!res.ok) { if (data.errors) setErrors(data.errors); else setErrors({ general: data.error }); return; }
-      router.push("/clients");
-    } catch (err) { setErrors({ general: "Something went wrong" }); }
-    finally { setSaving(false); }
+    setAlertConfig(
+      showCreateConfirm(
+        "Do you want to add this new client?",
+        async () => submitCreate(),
+        () => setAlertConfig(null)
+      )
+    );
   }
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm mb-6">
-        <Link href="/clients" style={{ color: '#6366f1' }} className="font-medium hover:underline">Clients</Link>
-        <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        <span style={{ color: 'var(--text-secondary)' }}>Add New</span>
+      {alertConfig && (
+        <SweetAlert
+          isOpen={!!alertConfig}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onConfirm={alertConfig.onConfirm}
+          onCancel={alertConfig.onCancel}
+          confirmText={alertConfig.confirmText}
+          cancelText={alertConfig.cancelText}
+          variant={alertConfig.variant}
+        />
+      )}
+      <div
+        className="rounded-2xl mb-6 px-5 py-3 sm:px-6 sm:py-3.5"
+        style={{ background: 'var(--heading-bg)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <div className="flex items-center gap-2 text-sm mb-1">
+          <Link href="/clients" style={{ color: '#9ca0c7' }} className="font-medium hover:underline">Clients</Link>
+          <svg className="w-4 h-4" style={{ color: '#9ca0c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <span style={{ color: '#9ca0c7' }}>Add New</span>
+        </div>
+        <h1 className="text-lg sm:text-xl font-bold text-white">Add New Client</h1>
       </div>
-
-      <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Add New Client</h1>
 
       {errors.general && (
         <div className="flex items-center gap-2 p-3 rounded-lg text-sm mb-5" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>

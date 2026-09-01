@@ -98,7 +98,7 @@ export default function Sidebar({ onClose }) {
           </svg>
         </div>
         <div>
-          <h1 className="text-white font-bold text-lg tracking-tight">HRIS</h1>
+          <h1 className="text-white font-bold text-lg tracking-tight">HRMS</h1>
           <p className="text-xs" style={{ color: '#7b7faa' }}>Payroll Management</p>
         </div>
       </div>

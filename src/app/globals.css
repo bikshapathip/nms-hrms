@@ -27,6 +27,7 @@
   --text-on-card: #374151;
   --card-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --tree-opacity: 0.15;
+  --heading-bg: linear-gradient(90deg, var(--sidebar-bg) 0%, #ffffff 100%);
 }
 
 [data-theme="dark"] {
@@ -53,6 +54,7 @@
   --text-on-card: #c9d1d9;
   --card-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
   --tree-opacity: 0.08;
+  --heading-bg: linear-gradient(90deg, var(--sidebar-bg) 0%, var(--bg-card-hover) 100%);
 }
 
 body {

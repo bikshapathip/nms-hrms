@@ -9,6 +9,7 @@ import PercentToggle from "@/components/PercentToggle";
 import SlabField from "@/components/SlabField";
 import { computeSalarySummary } from "@/lib/salaryCalc";
 import { SLAB_FIELDS, initSlabState, slabsToBody } from "@/lib/slabFields";
+import SweetAlert, { showCreateConfirm, showSuccessCreate, showError, showLoading } from "@/components/common/SweetAlert";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 const inputStyle = { border: '1px solid var(--border-input)', color: 'var(--text-primary)' };
@@ -79,6 +80,7 @@ export default function NewSalaryTemplatePage() {
     esiEnabled: false, esiPercent: "0.75", employerEsiEnabled: false, employerEsiPercent: "3.25",
   });
   const [slabs, setSlabs] = useState(initSlabState());
+  const [alertConfig, setAlertConfig] = useState(null);
 
   function addSlab(field) { setSlabs((prev) => ({ ...prev, [field]: [...prev[field], { minDays: "", maxDays: "", type: "Flat", value: "" }] })); }
   function removeSlab(field, idx) { setSlabs((prev) => ({ ...prev, [field]: prev[field].filter((_, i) => i !== idx) })); }
@@ -115,12 +117,12 @@ export default function NewSalaryTemplatePage() {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function submitCreate() {
     setError("");
     setErrors({});
     setSaving(true);
     try {
+      setAlertConfig(showLoading("Creating template..."));
       const body = { ...form, ...slabsToBody(slabs) };
       const res = await fetch("/api/salary-templates", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
@@ -128,23 +130,55 @@ export default function NewSalaryTemplatePage() {
       const data = await res.json();
       if (!res.ok) {
         if (data.errors) setErrors(data.errors); else setError(data.error || "Failed to create salary template");
+        setAlertConfig(showError(data.error || "Failed to create salary template", () => setAlertConfig(null)));
         return;
       }
-      router.push("/salary-templates");
-    } catch (err) { setError(err.message); } finally { setSaving(false); }
+      setAlertConfig(showSuccessCreate("Salary template created successfully!", () => { setAlertConfig(null); router.push("/salary-templates"); }));
+    } catch (err) {
+      setError(err.message);
+      setAlertConfig(showError(err.message || "Failed to create salary template", () => setAlertConfig(null)));
+    } finally { setSaving(false); }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    setAlertConfig(
+      showCreateConfirm(
+        "Do you want to create this salary template?",
+        async () => submitCreate(),
+        () => setAlertConfig(null)
+      )
+    );
   }
 
   const summary = computeSalarySummary(form);
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm mb-6">
-        <Link href="/salary-templates" style={{ color: 'var(--primary)' }} className="font-medium hover:underline">Salary Templates</Link>
-        <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        <span style={{ color: 'var(--text-secondary)' }}>Add New</span>
+      {alertConfig && (
+        <SweetAlert
+          isOpen={!!alertConfig}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onConfirm={alertConfig.onConfirm}
+          onCancel={alertConfig.onCancel}
+          confirmText={alertConfig.confirmText}
+          cancelText={alertConfig.cancelText}
+          variant={alertConfig.variant}
+        />
+      )}
+      <div
+        className="rounded-2xl mb-6 px-5 py-3 sm:px-6 sm:py-3.5"
+        style={{ background: 'var(--heading-bg)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <div className="flex items-center gap-2 text-sm mb-1">
+          <Link href="/salary-templates" style={{ color: '#9ca0c7' }} className="font-medium hover:underline">Salary Templates</Link>
+          <svg className="w-4 h-4" style={{ color: '#9ca0c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <span style={{ color: '#9ca0c7' }}>Add New</span>
+        </div>
+        <h1 className="text-lg sm:text-xl font-bold text-white">Add Salary Template</h1>
       </div>
-
-      <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Add Salary Template</h1>
 
       {error && (
         <div className="flex items-center gap-2 p-3 rounded-lg text-sm mb-5" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>

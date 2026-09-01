@@ -32,7 +32,7 @@ export default function DashboardLayout({ children }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
-            <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>HRIS</span>
+            <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>HRMS</span>
           </div>
         </div>
 
@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }) {
         <div className="fixed bottom-0 left-0 right-0 pointer-events-none" style={{ opacity: 'var(--tree-opacity, 0.15)', height: '150px', backgroundImage: 'url(/grass.png)', backgroundRepeat: 'repeat-x', backgroundSize: 'auto 100%', backgroundPosition: 'bottom', zIndex: 2 }}>
         </div>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 relative z-10">{children}</main>
+        <main className="flex-1 p-3 sm:p-4 lg:p-5 relative z-10">{children}</main>
       </div>
     </div>
   );

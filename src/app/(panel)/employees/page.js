@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import FullPageLoader from "@/components/FullPageLoader";
 import SearchableSelect from "@/components/SearchableSelect";
+import SweetAlert, { showDeleteConfirm, showSuccessDelete, showError, showLoading } from "@/components/common/SweetAlert";
 
 function uniqueValues(clients, clientId, extra = {}) {
   const pool = clientId ? clients.filter((c) => c._id === clientId) : clients;
@@ -31,6 +32,7 @@ export default function EmployeesPage() {
   const [sortField, setSortField] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
+  const [alertConfig, setAlertConfig] = useState(null);
 
   useEffect(() => {
     fetch("/api/clients/list").then((r) => r.json()).then((d) => setClients(Array.isArray(d) ? d : []));
@@ -73,14 +75,26 @@ export default function EmployeesPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  async function handleDelete(id, name) {
-    if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+  async function performDelete(id) {
     try {
+      setAlertConfig(showLoading("Deleting employee..."));
       const res = await fetch(`/api/employees/${id}`, { method: "DELETE" });
-      if (res.ok) fetchEmployees();
+      if (!res.ok) throw new Error("Failed to delete employee");
+      await fetchEmployees();
+      setAlertConfig(showSuccessDelete("Employee deleted successfully!", () => setAlertConfig(null)));
     } catch (err) {
-      console.error(err);
+      setAlertConfig(showError(err.message || "Failed to delete employee", () => setAlertConfig(null)));
     }
+  }
+
+  function handleDelete(id, name) {
+    setAlertConfig(
+      showDeleteConfirm(
+        `Do you want to delete ${name}?`,
+        async () => performDelete(id),
+        () => setAlertConfig(null)
+      )
+    );
   }
 
   const { total, totalPages } = pagination;
@@ -127,14 +141,30 @@ export default function EmployeesPage() {
   return (
     <div>
       {downloading && <FullPageLoader text="Downloading Offer Letter..." />}
+      {alertConfig && (
+        <SweetAlert
+          isOpen={!!alertConfig}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onConfirm={alertConfig.onConfirm}
+          onCancel={alertConfig.onCancel}
+          confirmText={alertConfig.confirmText}
+          cancelText={alertConfig.cancelText}
+          variant={alertConfig.variant}
+        />
+      )}
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div
+        className="rounded-2xl mb-6 px-5 py-3 sm:px-6 sm:py-3.5 flex items-center justify-between flex-wrap gap-3"
+        style={{ background: 'var(--heading-bg)', boxShadow: 'var(--card-shadow)' }}
+      >
         <div>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Employees</h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{total} total employees</p>
+          <h1 className="text-lg sm:text-xl font-bold text-white">Employees</h1>
+          <p className="text-xs mt-0.5" style={{ color: '#9ca0c7' }}>{total} total employees</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/employees/new" className="btn-primary px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2">
+          <Link href="/employees/new" className="btn-primary px-4 sm:px-5 py-2 rounded-full text-sm font-semibold flex items-center gap-2 shadow-lg">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>

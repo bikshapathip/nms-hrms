@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import SearchableSelect from "@/components/SearchableSelect";
+import SweetAlert, { showUpdateConfirm, showSuccessUpdate, showError, showLoading } from "@/components/common/SweetAlert";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 const inputStyle = { border: '1px solid var(--border-input)', color: 'var(--text-primary)' };
@@ -37,6 +38,7 @@ export default function EditUserPage() {
     userType: "Recruiter", firstName: "", lastName: "", username: "", email: "",
     phone: "", isActive: true,
   });
+  const [alertConfig, setAlertConfig] = useState(null);
 
   useEffect(() => {
     async function fetchUser() {
@@ -76,15 +78,12 @@ export default function EditUserPage() {
     return errs;
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-
+  async function submitUpdate() {
     setSaving(true);
     setErrors({});
 
     try {
+      setAlertConfig(showLoading("Updating user..."));
       const res = await fetch(`/api/users/${params.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -94,14 +93,30 @@ export default function EditUserPage() {
       if (!res.ok) {
         if (data.errors) setErrors(data.errors);
         else setErrors({ general: data.error || "Failed to update" });
+        setAlertConfig(showError(data.error || "Failed to update user", () => setAlertConfig(null)));
         return;
       }
-      router.push("/users");
+      setAlertConfig(showSuccessUpdate("User updated successfully!", () => { setAlertConfig(null); router.push("/users"); }));
     } catch (err) {
       setErrors({ general: "Something went wrong" });
+      setAlertConfig(showError("Something went wrong", () => setAlertConfig(null)));
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+
+    setAlertConfig(
+      showUpdateConfirm(
+        "Do you want to update this user's details?",
+        async () => submitUpdate(),
+        () => setAlertConfig(null)
+      )
+    );
   }
 
   if (loading) {
@@ -117,13 +132,30 @@ export default function EditUserPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm mb-6">
-        <Link href="/users" style={{ color: 'var(--primary)' }} className="font-medium hover:underline">Users</Link>
-        <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        <span style={{ color: 'var(--text-secondary)' }}>Edit User</span>
+      {alertConfig && (
+        <SweetAlert
+          isOpen={!!alertConfig}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onConfirm={alertConfig.onConfirm}
+          onCancel={alertConfig.onCancel}
+          confirmText={alertConfig.confirmText}
+          cancelText={alertConfig.cancelText}
+          variant={alertConfig.variant}
+        />
+      )}
+      <div
+        className="rounded-2xl mb-6 px-5 py-3 sm:px-6 sm:py-3.5"
+        style={{ background: 'var(--heading-bg)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <div className="flex items-center gap-2 text-sm mb-1">
+          <Link href="/users" style={{ color: '#9ca0c7' }} className="font-medium hover:underline">Users</Link>
+          <svg className="w-4 h-4" style={{ color: '#9ca0c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <span style={{ color: '#9ca0c7' }}>Edit User</span>
+        </div>
+        <h1 className="text-lg sm:text-xl font-bold text-white">Edit User</h1>
       </div>
-
-      <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Edit User</h1>
 
       {errors.general && (
         <div className="flex items-center gap-2 p-3 rounded-lg text-sm mb-5" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
@@ -150,12 +182,12 @@ export default function EditUserPage() {
                 options={["Admin", "Recruiter"]}
               />
             </div>
-            <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} required error={errors.firstName} />
-            <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} required error={errors.lastName} />
-            <Input label="Username" name="username" value={form.username} onChange={handleChange} required error={errors.username} />
-            <Input label="Email" name="email" type="email" value={form.email} onChange={handleChange} required error={errors.email} />
+            <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} required error={errors.firstName} placeholder="e.g. John" />
+            <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} required error={errors.lastName} placeholder="e.g. Doe" />
+            <Input label="Username" name="username" value={form.username} onChange={handleChange} required error={errors.username} placeholder="e.g. john_doe" />
+            <Input label="Email" name="email" type="email" value={form.email} onChange={handleChange} required error={errors.email} placeholder="user@example.com" />
             <Input label="Phone" name="phone" value={form.phone} onChange={handleChange} error={errors.phone} placeholder="10 digit number" maxLength={10} />
-            <Input label="Designation" name="designation" value={form.designation} onChange={handleChange} />
+            <Input label="Designation" name="designation" value={form.designation} onChange={handleChange} placeholder="e.g. Software Engineer" />
             <div className="flex items-center">
               <label className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg cursor-pointer" style={{ border: '1px solid var(--border-color)' }}>
                 <input name="isActive" type="checkbox" checked={form.isActive} onChange={handleChange} className="w-4 h-4 rounded" style={{ accentColor: 'var(--primary)' }} />

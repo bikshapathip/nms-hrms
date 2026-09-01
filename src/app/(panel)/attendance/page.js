@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import SearchableSelect from "@/components/SearchableSelect";
+import SweetAlert, { showUpdateConfirm, showSuccessUpdate, showError, showLoading } from "@/components/common/SweetAlert";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -18,7 +19,7 @@ export default function AttendancePage() {
   const [fetched, setFetched] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [alertConfig, setAlertConfig] = useState(null);
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState("");
   const [selectedState, setSelectedState] = useState("");
@@ -66,7 +67,6 @@ export default function AttendancePage() {
     setLoading(true);
     setFetched(false);
     setEditMode(false);
-    setSaveSuccess(false);
     try {
       const res = await fetch(`/api/attendance?month=${month}&year=${year}`);
       const data = await res.json();
@@ -87,34 +87,45 @@ export default function AttendancePage() {
     );
   }
 
-  async function saveAll() {
+  async function performSaveAll() {
     setSaving(true);
-    setSaveSuccess(false);
     try {
-      const promises = employees.map((emp) =>
-        fetch("/api/attendance", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            employeeId: emp._id,
-            month,
-            year,
-            totalWorkingDays: emp.attendance.totalWorkingDays,
-            daysWorked: emp.attendance.daysWorked,
-            leaveDays: Math.max(0, emp.attendance.totalWorkingDays - emp.attendance.daysWorked),
-            overtimeHours: emp.attendance.overtimeHours,
-          }),
-        })
+      setAlertConfig(showLoading("Saving attendance..."));
+      const results = await Promise.all(
+        employees.map((emp) =>
+          fetch("/api/attendance", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              employeeId: emp._id,
+              month,
+              year,
+              totalWorkingDays: emp.attendance.totalWorkingDays,
+              daysWorked: emp.attendance.daysWorked,
+              leaveDays: Math.max(0, emp.attendance.totalWorkingDays - emp.attendance.daysWorked),
+              overtimeHours: emp.attendance.overtimeHours,
+            }),
+          })
+        )
       );
-      await Promise.all(promises);
+      if (results.some((r) => !r.ok)) throw new Error("Failed to save attendance for some employees");
       setEditMode(false);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      setAlertConfig(showSuccessUpdate(`Attendance saved successfully for ${MONTHS[month - 1]} ${year}!`, () => setAlertConfig(null)));
     } catch (err) {
-      console.error(err);
+      setAlertConfig(showError(err.message || "Failed to save attendance", () => setAlertConfig(null)));
     } finally {
       setSaving(false);
     }
+  }
+
+  function saveAll() {
+    setAlertConfig(
+      showUpdateConfirm(
+        `Do you want to save attendance changes for ${MONTHS[month - 1]} ${year}?`,
+        async () => performSaveAll(),
+        () => setAlertConfig(null)
+      )
+    );
   }
 
   const years = [];
@@ -122,9 +133,25 @@ export default function AttendancePage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Attendance</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Manage monthly attendance for all employees</p>
+      {alertConfig && (
+        <SweetAlert
+          isOpen={!!alertConfig}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onConfirm={alertConfig.onConfirm}
+          onCancel={alertConfig.onCancel}
+          confirmText={alertConfig.confirmText}
+          cancelText={alertConfig.cancelText}
+          variant={alertConfig.variant}
+        />
+      )}
+      <div
+        className="rounded-2xl mb-6 px-5 py-3 sm:px-6 sm:py-3.5"
+        style={{ background: 'var(--heading-bg)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <h1 className="text-lg sm:text-xl font-bold text-white">Attendance</h1>
+        <p className="text-xs mt-0.5" style={{ color: '#9ca0c7' }}>Manage monthly attendance for all employees</p>
       </div>
 
       {/* Month/Year Selector + Fetch */}
@@ -222,13 +249,6 @@ export default function AttendancePage() {
           )}
         </div>
       </div>
-
-      {saveSuccess && (
-        <div className="flex items-center gap-2 p-3 rounded-lg text-sm mb-5" style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-          Attendance saved successfully for {MONTHS[month - 1]} {year}!
-        </div>
-      )}
 
       {!fetched && !loading ? (
         <div className="keka-card text-center py-20">

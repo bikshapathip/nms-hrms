@@ -9,6 +9,7 @@ import PercentToggle from "@/components/PercentToggle";
 import SlabField from "@/components/SlabField";
 import { computeSalarySummary } from "@/lib/salaryCalc";
 import { SLAB_FIELDS, initSlabState, slabsFromDoc, slabsToBody } from "@/lib/slabFields";
+import SweetAlert, { showUpdateConfirm, showSuccessUpdate, showError, showLoading } from "@/components/common/SweetAlert";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 const inputStyle = { border: '1px solid var(--border-input)', color: 'var(--text-primary)' };
@@ -83,6 +84,7 @@ export default function EditEmployeePage() {
     workingStatus: "Active", isActive: true,
   });
   const [slabs, setSlabs] = useState(initSlabState());
+  const [alertConfig, setAlertConfig] = useState(null);
 
   function addSlab(field) { setSlabs((prev) => ({ ...prev, [field]: [...prev[field], { minDays: "", maxDays: "", type: "Flat", value: "" }] })); }
   function removeSlab(field, idx) { setSlabs((prev) => ({ ...prev, [field]: prev[field].filter((_, i) => i !== idx) })); }
@@ -190,9 +192,10 @@ export default function EditEmployeePage() {
     setSlabs(slabsFromDoc(t));
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault(); setError(""); setSaving(true);
+  async function submitUpdate() {
+    setError(""); setSaving(true);
     try {
+      setAlertConfig(showLoading("Updating employee..."));
       const body = { ...form, client: form.client||null, referenceUser: form.referenceUser||null, salaryTemplate: form.salaryTemplate||null,
         basicSalary:Number(form.basicSalary)||0, hra:Number(form.hra)||0, da:Number(form.da)||0,
         statutoryBonus:Number(form.statutoryBonus)||0,
@@ -204,8 +207,22 @@ export default function EditEmployeePage() {
         ...slabsToBody(slabs) };
       const res = await fetch(`/api/employees/${params.id}`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
       if (!res.ok) { const d=await res.json(); throw new Error(d.error||"Failed"); }
-      router.push("/employees");
-    } catch (e) { setError(e.message); } finally { setSaving(false); }
+      setAlertConfig(showSuccessUpdate("Employee updated successfully!", () => { setAlertConfig(null); router.push("/employees"); }));
+    } catch (e) {
+      setError(e.message);
+      setAlertConfig(showError(e.message || "Failed to update employee", () => setAlertConfig(null)));
+    } finally { setSaving(false); }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    setAlertConfig(
+      showUpdateConfirm(
+        "Do you want to update this employee's details?",
+        async () => submitUpdate(),
+        () => setAlertConfig(null)
+      )
+    );
   }
 
   if (loading) return <div className="flex items-center justify-center h-64"><svg className="animate-spin h-5 w-5" style={{color:'var(--primary)'}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></div>;
@@ -214,10 +231,28 @@ export default function EditEmployeePage() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm mb-6"><Link href="/employees" style={{color:'var(--primary)'}} className="font-medium hover:underline">Employees</Link><svg className="w-4 h-4" style={{color:'var(--text-muted)'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg><span style={{color:'var(--text-secondary)'}}>Edit</span></div>
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h1 className="text-xl font-bold" style={{color:'var(--text-primary)'}}>Edit Employee</h1>
-        <Link href={`/employees/${params.id}/payroll`} className="px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition" style={{ background: 'var(--bg-input)', color: 'var(--primary)', border: '1px solid var(--border-color)' }}>
+      {alertConfig && (
+        <SweetAlert
+          isOpen={!!alertConfig}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onConfirm={alertConfig.onConfirm}
+          onCancel={alertConfig.onCancel}
+          confirmText={alertConfig.confirmText}
+          cancelText={alertConfig.cancelText}
+          variant={alertConfig.variant}
+        />
+      )}
+      <div
+        className="rounded-2xl mb-6 px-5 py-3 sm:px-6 sm:py-3.5 flex items-center justify-between flex-wrap gap-3"
+        style={{ background: 'var(--heading-bg)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <div>
+          <div className="flex items-center gap-2 text-sm mb-1"><Link href="/employees" style={{color:'#9ca0c7'}} className="font-medium hover:underline">Employees</Link><svg className="w-4 h-4" style={{color:'#9ca0c7'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg><span style={{color:'#9ca0c7'}}>Edit</span></div>
+          <h1 className="text-lg sm:text-xl font-bold text-white">Edit Employee</h1>
+        </div>
+        <Link href={`/employees/${params.id}/payroll`} className="px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 transition bg-white/10 hover:bg-white/20 text-white">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>
           View Payroll
         </Link>

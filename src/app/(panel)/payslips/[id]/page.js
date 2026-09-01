@@ -89,11 +89,14 @@ export default function PayslipDetailPage() {
     <div>
       {downloading && <FullPageLoader text="Downloading Payslip..." />}
       {/* Action bar */}
-      <div className="flex items-center justify-between mb-6">
+      <div
+        className="rounded-2xl mb-6 px-5 py-3 sm:px-6 sm:py-3.5 flex items-center justify-between flex-wrap gap-3"
+        style={{ background: 'var(--heading-bg)', boxShadow: 'var(--card-shadow)' }}
+      >
         <div className="flex items-center gap-2 text-sm">
-          <Link href="/payslips" style={{ color: 'var(--primary)' }} className="font-medium hover:underline">Payslips</Link>
-          <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-          <span style={{ color: 'var(--text-secondary)' }}>{emp?.name}</span>
+          <Link href="/payslips" style={{ color: '#9ca0c7' }} className="font-medium hover:underline">Payslips</Link>
+          <svg className="w-4 h-4" style={{ color: '#9ca0c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <span className="font-semibold text-white">{emp?.name}</span>
         </div>
         <div className="flex items-center gap-2">
           <button

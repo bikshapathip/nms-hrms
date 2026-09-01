@@ -9,7 +9,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await dbConnect();
-  const users = await User.find({ isActive: true })
+  const users = await User.find({ isActive: true, userType: "Recruiter" })
     .select("firstName lastName username userType")
     .sort({ firstName: 1, lastName: 1 })
     .lean();

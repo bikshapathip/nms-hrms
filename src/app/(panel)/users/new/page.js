@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SearchableSelect from "@/components/SearchableSelect";
+import SweetAlert, { showCreateConfirm, showSuccessCreate, showError, showLoading } from "@/components/common/SweetAlert";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 const inputStyle = { border: '1px solid var(--border-input)', color: 'var(--text-primary)' };
@@ -35,6 +36,7 @@ export default function NewUserPage() {
     userType: "Recruiter", firstName: "", lastName: "", username: "", email: "",
     phone: "", password: "", confirmPassword: "",
   });
+  const [alertConfig, setAlertConfig] = useState(null);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -58,15 +60,12 @@ export default function NewUserPage() {
     return errs;
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-
+  async function submitCreate() {
     setSaving(true);
     setErrors({});
 
     try {
+      setAlertConfig(showLoading("Creating user..."));
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -76,25 +75,58 @@ export default function NewUserPage() {
       if (!res.ok) {
         if (data.errors) setErrors(data.errors);
         else setErrors({ general: data.error || "Failed to create user" });
+        setAlertConfig(showError(data.error || "Failed to create user", () => setAlertConfig(null)));
         return;
       }
-      router.push("/users");
+      setAlertConfig(showSuccessCreate("User created successfully!", () => { setAlertConfig(null); router.push("/users"); }));
     } catch (err) {
       setErrors({ general: "Something went wrong" });
+      setAlertConfig(showError("Something went wrong", () => setAlertConfig(null)));
     } finally {
       setSaving(false);
     }
   }
 
+  function handleSubmit(e) {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+
+    setAlertConfig(
+      showCreateConfirm(
+        "Do you want to create this new user?",
+        async () => submitCreate(),
+        () => setAlertConfig(null)
+      )
+    );
+  }
+
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm mb-6">
-        <Link href="/users" style={{ color: 'var(--primary)' }} className="font-medium hover:underline">Users</Link>
-        <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        <span style={{ color: 'var(--text-secondary)' }}>Add New</span>
+      {alertConfig && (
+        <SweetAlert
+          isOpen={!!alertConfig}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onConfirm={alertConfig.onConfirm}
+          onCancel={alertConfig.onCancel}
+          confirmText={alertConfig.confirmText}
+          cancelText={alertConfig.cancelText}
+          variant={alertConfig.variant}
+        />
+      )}
+      <div
+        className="rounded-2xl mb-6 px-5 py-3 sm:px-6 sm:py-3.5"
+        style={{ background: 'var(--heading-bg)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <div className="flex items-center gap-2 text-sm mb-1">
+          <Link href="/users" style={{ color: '#9ca0c7' }} className="font-medium hover:underline">Users</Link>
+          <svg className="w-4 h-4" style={{ color: '#9ca0c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <span style={{ color: '#9ca0c7' }}>Add New</span>
+        </div>
+        <h1 className="text-lg sm:text-xl font-bold text-white">Add New User</h1>
       </div>
-
-      <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Add New User</h1>
 
       {errors.general && (
         <div className="flex items-center gap-2 p-3 rounded-lg text-sm mb-5" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
@@ -121,13 +153,13 @@ export default function NewUserPage() {
                 options={["Admin", "Recruiter"]}
               />
             </div>
-            <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} required error={errors.firstName} />
-            <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} required error={errors.lastName} />
+            <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} required error={errors.firstName} placeholder="e.g. John" />
+            <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} required error={errors.lastName} placeholder="e.g. Doe" />
             <Input label="Username" name="username" value={form.username} onChange={handleChange} required error={errors.username} placeholder="e.g. john_doe" />
             <Input label="Email" name="email" type="email" value={form.email} onChange={handleChange} required error={errors.email} placeholder="user@example.com" />
             <Input label="Phone" name="phone" value={form.phone} onChange={handleChange} error={errors.phone} placeholder="10 digit number" maxLength={10} />
             <Input label="Password" name="password" type="password" value={form.password} onChange={handleChange} required error={errors.password} placeholder="Min 6 characters" />
-            <Input label="Confirm Password" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required error={errors.confirmPassword} />
+            <Input label="Confirm Password" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required error={errors.confirmPassword} placeholder="Re-enter password" />
           </div>
         </div>
 
