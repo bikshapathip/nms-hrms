@@ -8,6 +8,55 @@ import SweetAlert, { showCreateConfirm, showSuccessCreate, showError, showLoadin
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 const inputStyle = { border: '1px solid var(--border-input)', color: 'var(--text-primary)' };
+const passwordRules = {
+  uppercase: /[A-Z]/,
+  lowercase: /[a-z]/,
+  number: /[0-9]/,
+  special: /[^A-Za-z0-9]/,
+};
+
+function validatePassword(password) {
+  if (!password) return "Password is required";
+  if (password.length < 8) return "Password must be at least 8 characters long";
+  if (!passwordRules.uppercase.test(password)) return "Password must contain at least one uppercase letter";
+  if (!passwordRules.lowercase.test(password)) return "Password must contain at least one lowercase letter";
+  if (!passwordRules.number.test(password)) return "Password must contain at least one number";
+  if (!passwordRules.special.test(password)) return "Password must contain at least one special character";
+  return "";
+}
+
+function PasswordVisibilityToggle({ visible, onClick, label }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="absolute inset-y-0 right-0 flex items-center px-3"
+      style={{ color: 'var(--text-secondary)' }}
+      aria-label={visible ? `Hide ${label}` : `Show ${label}`}
+      title={visible ? `Hide ${label}` : `Show ${label}`}
+    >
+      {!visible ? (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.24 19.5 12 19.5c.993 0 1.954-.138 2.865-.395M6.228 6.228A9.956 9.956 0 0112 4.5c4.76 0 8.774 3.162 10.066 7.5a10.478 10.478 0 01-4.135 5.411M6.228 6.228L3 3m3.228 3.228l3.65 3.65m0 0a3 3 0 004.243 4.243m-4.243-4.243l4.243 4.243M21 21l-6.772-6.772" />
+        </svg>
+      ) : (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.639 0 8.573 3.007 9.963 7.178.07.207.07.432 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.639 0-8.573-3.007-9.963-7.178z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+function MatchStatusIcon({ matched }) {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2L14.32 3.78L17.23 3.53L18.37 6.22L21.09 7.31L20.84 10.22L22.62 12L20.84 13.78L21.09 16.69L18.37 17.78L17.23 20.47L14.32 20.22L12 22L9.68 20.22L6.77 20.47L5.63 17.78L2.91 16.69L3.16 13.78L1.38 12L3.16 10.22L2.91 7.31L5.63 6.22L6.77 3.53L9.68 3.78L12 2Z" fill={matched ? 'var(--success)' : 'var(--danger)'} />
+      <path d={matched ? "M8 12.4l2.5 2.5L16 9.4" : "M9 9l6 6m0-6l-6 6"} stroke="white" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function Input({ label, required, error, ...props }) {
   return (
@@ -36,11 +85,16 @@ export default function NewUserPage() {
     userType: "Recruiter", firstName: "", lastName: "", username: "", email: "",
     phone: "", password: "", confirmPassword: "",
   });
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [confirmPasswordBlurred, setConfirmPasswordBlurred] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [alertConfig, setAlertConfig] = useState(null);
 
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (name === "password") setPasswordTouched(true);
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   }
 
@@ -54,11 +108,40 @@ export default function NewUserPage() {
     if (!form.email.trim()) errs.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Invalid email format";
     if (form.phone && !/^[0-9]{10}$/.test(form.phone)) errs.phone = "Must be 10 digits";
-    if (!form.password) errs.password = "Password is required";
-    else if (form.password.length < 6) errs.password = "Min 6 characters";
+    const passwordError = validatePassword(form.password);
+    if (passwordError) errs.password = passwordError;
     if (form.password !== form.confirmPassword) errs.confirmPassword = "Passwords do not match";
     return errs;
   }
+
+  const passwordChecks = {
+    minLength: form.password.length >= 8,
+    uppercase: passwordRules.uppercase.test(form.password),
+    lowercase: passwordRules.lowercase.test(form.password),
+    number: passwordRules.number.test(form.password),
+    special: passwordRules.special.test(form.password),
+  };
+  const passwordScore = Object.values(passwordChecks).filter(Boolean).length;
+  const passwordPolicySatisfied = Object.values(passwordChecks).every(Boolean);
+  const missingPasswordRequirements = [
+    !passwordChecks.minLength ? "8+ chars" : null,
+    !passwordChecks.uppercase ? "uppercase (A-Z)" : null,
+    !passwordChecks.lowercase ? "lowercase (a-z)" : null,
+    !passwordChecks.number ? "number (0-9)" : null,
+    !passwordChecks.special ? "symbol" : null,
+  ].filter(Boolean);
+  const passwordStrength = passwordScore <= 2
+    ? { label: "Weak", color: "#ef4444" }
+    : passwordScore === 3
+      ? { label: "So-so", color: "#f59e0b" }
+      : passwordScore === 4
+        ? { label: "Good", color: "#3b82f6" }
+        : { label: "Strong", color: "#10b981" };
+  const passwordsMatch = form.confirmPassword.length > 0 && form.password === form.confirmPassword;
+  const confirmPasswordTooLong = form.confirmPassword.length > form.password.length;
+  const showConfirmPasswordMismatch =
+    (form.confirmPassword.length > 0 && confirmPasswordTooLong) ||
+    (confirmPasswordBlurred && !passwordsMatch);
 
   async function submitCreate() {
     setSaving(true);
@@ -158,8 +241,81 @@ export default function NewUserPage() {
             <Input label="Username" name="username" value={form.username} onChange={handleChange} required error={errors.username} placeholder="e.g. john_doe" />
             <Input label="Email" name="email" type="email" value={form.email} onChange={handleChange} required error={errors.email} placeholder="user@example.com" />
             <Input label="Phone" name="phone" value={form.phone} onChange={handleChange} error={errors.phone} placeholder="10 digit number" maxLength={10} />
-            <Input label="Password" name="password" type="password" value={form.password} onChange={handleChange} required error={errors.password} placeholder="Min 6 characters" />
-            <Input label="Confirm Password" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} required error={errors.confirmPassword} placeholder="Re-enter password" />
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-on-card)' }}>
+                Password <span style={{ color: 'var(--danger)' }}>*</span>
+              </label>
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={handleChange}
+                  className={`${inputClass} pr-10`}
+                  style={{ ...inputStyle, borderColor: errors.password ? 'var(--danger)' : 'var(--border-input)' }}
+                  onFocus={(e) => { e.target.style.borderColor = errors.password ? 'var(--danger)' : 'var(--primary)'; }}
+                  onBlur={(e) => { e.target.style.borderColor = errors.password ? 'var(--danger)' : 'var(--border-input)'; }}
+                  placeholder="Enter password"
+                  autoComplete="new-password"
+                  required
+                />
+                <PasswordVisibilityToggle visible={showPassword} onClick={() => setShowPassword((visible) => !visible)} label="password" />
+              </div>
+              {(passwordTouched || form.password.length > 0) && (
+                <div className="mt-2">
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((step) => (
+                      <span key={step} className="h-1 flex-1 rounded-full" style={{ background: step <= passwordScore ? passwordStrength.color : 'var(--border-color)' }} />
+                    ))}
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2 text-xs">
+                    <span style={{ color: passwordPolicySatisfied ? 'var(--success)' : 'var(--text-secondary)' }}>
+                      {passwordPolicySatisfied ? "Password meets all requirements" : `Missing: ${missingPasswordRequirements.join(", ")}`}
+                    </span>
+                    <span className="shrink-0" style={{ color: passwordStrength.color }}>{passwordStrength.label}</span>
+                  </div>
+                </div>
+              )}
+              {errors.password && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.password}</p>}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-on-card)' }}>
+                  Confirm Password <span style={{ color: 'var(--danger)' }}>*</span>
+                </label>
+                {passwordsMatch ? (
+                  <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--success)' }}>
+                    <MatchStatusIcon matched={true} />
+                    Matched
+                  </span>
+                ) : showConfirmPasswordMismatch ? (
+                  <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--danger)' }}>
+                    <MatchStatusIcon matched={false} />
+                    Not Matched
+                  </span>
+                ) : null}
+              </div>
+              <div className="relative">
+                <input
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={form.confirmPassword}
+                  onChange={(e) => {
+                    handleChange(e);
+                    setConfirmPasswordBlurred(false);
+                  }}
+                  onBlur={() => setConfirmPasswordBlurred(true)}
+                  className={`${inputClass} pr-10`}
+                  style={{ ...inputStyle, borderColor: errors.confirmPassword ? 'var(--danger)' : 'var(--border-input)' }}
+                  onFocus={(e) => { e.target.style.borderColor = errors.confirmPassword ? 'var(--danger)' : 'var(--primary)'; }}
+                  placeholder="Re-enter password"
+                  autoComplete="new-password"
+                  required
+                />
+                <PasswordVisibilityToggle visible={showConfirmPassword} onClick={() => setShowConfirmPassword((visible) => !visible)} label="confirm password" />
+              </div>
+              {errors.confirmPassword && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.confirmPassword}</p>}
+            </div>
           </div>
         </div>
 
@@ -167,7 +323,16 @@ export default function NewUserPage() {
           <button type="submit" disabled={saving} className="btn-primary px-6 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50 flex items-center gap-2">
             {saving ? (<><svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Saving...</>) : "Create User"}
           </button>
-          <button type="button" onClick={() => router.back()} className="px-6 py-2.5 rounded-lg text-sm font-medium transition" style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }} onMouseEnter={(e) => e.target.style.background = 'var(--bg-input)'} onMouseLeave={(e) => e.target.style.background = 'transparent'}>Cancel</button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition"
+            style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-input)', boxShadow: 'var(--card-shadow)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-input)'; e.currentTarget.style.borderColor = 'var(--primary)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.borderColor = 'var(--border-input)'; }}
+          >
+            Cancel
+          </button>
         </div>
       </form>
     </div>

@@ -69,7 +69,11 @@ export async function POST(request) {
   if (!body.email?.trim()) errors.email = "Email is required";
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) errors.email = "Invalid email format";
   if (!body.password) errors.password = "Password is required";
-  else if (body.password.length < 6) errors.password = "Password must be at least 6 characters";
+  else if (body.password.length < 8) errors.password = "Password must be at least 8 characters long";
+  else if (!/[A-Z]/.test(body.password)) errors.password = "Password must contain at least one uppercase letter";
+  else if (!/[a-z]/.test(body.password)) errors.password = "Password must contain at least one lowercase letter";
+  else if (!/[0-9]/.test(body.password)) errors.password = "Password must contain at least one number";
+  else if (!/[^A-Za-z0-9]/.test(body.password)) errors.password = "Password must contain at least one special character";
   if (body.phone && !/^[0-9]{10}$/.test(body.phone)) errors.phone = "Phone must be 10 digits";
 
   if (Object.keys(errors).length > 0) {
