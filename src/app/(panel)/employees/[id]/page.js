@@ -10,6 +10,7 @@ import SlabField from "@/components/SlabField";
 import { computeSalarySummary } from "@/lib/salaryCalc";
 import { SLAB_FIELDS, initSlabState, slabsFromDoc, slabsToBody } from "@/lib/slabFields";
 import SweetAlert, { showUpdateConfirm, showSuccessUpdate, showError, showLoading } from "@/components/common/SweetAlert";
+import { OFFER_LETTER_TEMPLATE_OPTIONS } from "@/lib/offerLetterTemplateOptions";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 const inputStyle = { border: '1px solid var(--border-input)', color: 'var(--text-primary)' };
@@ -72,6 +73,7 @@ export default function EditEmployeePage() {
   const [form, setForm] = useState({
     employeeId: "", firstName: "", lastName: "", gender: "Male", dateOfBirth: "", contactNumber: "", email: "",
     designation: "", client: "", clientLocation: "", dateOfJoining: "",
+    offerLetterTemplate: "default",
     city: "", state: "", address: "", addressCity: "", addressState: "", addressZipCode: "", maritalStatus: "Single", referenceUser: "", remarks: "",
     panNumber: "", aadharNumber: "", esicNumber: "", uanNumber: "",
     bankName: "", bankAccount: "", ifscCode: "",
@@ -142,6 +144,7 @@ export default function EditEmployeePage() {
         setForm({ employeeId: d.employeeId||"", firstName: d.firstName||"", lastName: d.lastName||"", gender: d.gender||"Male",
           dateOfBirth: d.dateOfBirth?d.dateOfBirth.split("T")[0]:"", contactNumber: d.contactNumber||"", email: d.email||"",
           designation: d.designation||"", client: cId, clientLocation: d.clientLocation||"",
+          offerLetterTemplate: d.offerLetterTemplate||"default",
           dateOfJoining: d.dateOfJoining?d.dateOfJoining.split("T")[0]:"", city: d.city||"", state: d.state||"", address: d.address||"",
           addressCity: d.addressCity||"", addressState: d.addressState||"", addressZipCode: d.addressZipCode||"",
           maritalStatus: d.maritalStatus||"Single", referenceUser: refId, remarks: d.remarks||"",
@@ -283,6 +286,8 @@ export default function EditEmployeePage() {
             <Select label="State" name="state" value={form.state} onChange={handleChange} disabled={!form.client} options={availableStates} />
             <Select label="City" name="city" value={form.city} onChange={handleChange} disabled={!form.state} options={availableCities} />
             <Select label="Location" name="clientLocation" value={form.clientLocation} onChange={handleChange} disabled={!form.city} options={availableLocations} />
+            <Select label="Offer Letter Template" name="offerLetterTemplate" value={form.offerLetterTemplate} onChange={handleChange}
+              clearable={false} options={OFFER_LETTER_TEMPLATE_OPTIONS} />
             <div className="sm:col-span-2 lg:col-span-4">
               <Select
                 label="Salary Template"

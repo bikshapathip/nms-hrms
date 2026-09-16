@@ -14,3 +14,17 @@ export function getLogoBase64() {
   }
   return cachedLogo;
 }
+
+let cachedStamp = null;
+
+export function getStampBase64() {
+  if (cachedStamp !== null) return cachedStamp;
+  try {
+    const stampPath = path.join(process.cwd(), "public", "stamp.png");
+    const stampBuffer = fs.readFileSync(stampPath);
+    cachedStamp = `data:image/png;base64,${stampBuffer.toString("base64")}`;
+  } catch (e) {
+    cachedStamp = "";
+  }
+  return cachedStamp;
+}
