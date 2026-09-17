@@ -25,7 +25,8 @@ export function SolaraOfferLetterDocument({ employee: emp, client }) {
   const stamp = getStampBase64();
 
   const b = emp.basicSalary || 0, h = emp.hra || 0, d = emp.da || 0, oa = emp.otherAllowance || 0;
-  const gross = b + h + d + oa;
+  const sb = emp.statutoryBonus || 0;
+  const gross = b + h + d + oa + sb;
   const epfE = emp.pfEnabled ? Math.round(b * 0.12) : 0;
   const esicE = emp.esiEnabled && gross <= 21000 ? Math.round(gross * 0.0075) : 0;
   const pt = emp.professionalTax || 0;
@@ -40,6 +41,7 @@ export function SolaraOfferLetterDocument({ employee: emp, client }) {
     { label: "HRA", value: fmt(h) },
     { label: "DA / Dearness Allowance", value: fmt(d) },
     { label: "Other Allowance", value: fmt(oa) },
+    { label: "Statutory Bonus", value: fmt(sb) },
     { label: "Gross Salary (A)", value: fmt(gross), bold: true, variant: "green" },
     { label: "EPF Contribution [Employee] (12%)", value: fmt(epfE) },
     { label: "ESIC Contribution [Employee] (0.75%)", value: fmt(esicE) },

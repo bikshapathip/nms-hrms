@@ -52,7 +52,7 @@ export default function ViewEmployeePage() {
   }, [params.id]);
 
   const name = emp ? (emp.name || `${emp.firstName || ""} ${emp.lastName || ""}`.trim()) : "";
-  const gross = emp ? (emp.basicSalary || 0) + (emp.hra || 0) + (emp.da || 0) + (emp.otherAllowance || 0) : 0;
+  const gross = emp ? (emp.basicSalary || 0) + (emp.hra || 0) + (emp.da || 0) + (emp.statutoryBonus || 0) + (emp.otherAllowance || 0) : 0;
   const initials = name ? name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) : "";
 
   return (

@@ -484,7 +484,7 @@ export default function EmployeesPage() {
                     onClear={clearFilters}
                   />
                 ) : employees.map((emp, i) => {
-                  const gross = emp.basicSalary + emp.hra + emp.da + emp.otherAllowance;
+                  const gross = emp.basicSalary + emp.hra + emp.da + (emp.statutoryBonus || 0) + emp.otherAllowance;
                   const initials = emp.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                   const colors = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6'];
                   const avatarColor = colors[i % colors.length];
