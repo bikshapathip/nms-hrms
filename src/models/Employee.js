@@ -18,6 +18,7 @@ const EmployeeSchema = new mongoose.Schema({
   designation: { type: String, required: true },
   client: { type: mongoose.Schema.Types.ObjectId, ref: "Client", default: null },
   clientLocation: { type: String, default: "" },
+  offerLetterTemplate: { type: String, default: "default" },
   dateOfJoining: { type: Date, required: true },
   city: { type: String, default: "" },
   state: { type: String, default: "" },

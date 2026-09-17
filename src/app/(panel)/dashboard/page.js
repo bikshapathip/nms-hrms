@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import PayrollTrendChart from "@/components/dashboard/PayrollTrendChart";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [stats, setStats] = useState({ employees: 0 });
+  const [trend, setTrend] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,19 +18,34 @@ export default function DashboardPage() {
         const employees = await empRes.json();
 
         const now = new Date();
-        const month = now.getMonth() + 1;
-        const year = now.getFullYear();
+        const months = [...Array(6)].map((_, i) => {
+          const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+          return {
+            month: d.getMonth() + 1,
+            year: d.getFullYear(),
+            label: d.toLocaleString("en-US", { month: "short" }),
+            fullLabel: d.toLocaleString("en-US", { month: "long", year: "numeric" }),
+          };
+        });
 
-        const payRes = await fetch(`/api/payslips?month=${month}&year=${year}`);
-        const payslips = await payRes.json();
+        const monthlyPayslips = await Promise.all(
+          months.map((m) => fetch(`/api/payslips?month=${m.month}&year=${m.year}`).then((r) => r.json()))
+        );
 
-        const totalNet = Array.isArray(payslips) ? payslips.reduce((sum, p) => sum + p.netSalary, 0) : 0;
+        const trendData = months.map((m, i) => ({
+          label: m.label,
+          fullLabel: m.fullLabel,
+          value: Array.isArray(monthlyPayslips[i]) ? monthlyPayslips[i].reduce((sum, p) => sum + (p.netSalary || 0), 0) : 0,
+        }));
+        setTrend(trendData);
+
+        const currentMonthPayslips = monthlyPayslips[monthlyPayslips.length - 1];
 
         setStats({
           employees: Array.isArray(employees) ? employees.length : 0,
           activeEmployees: Array.isArray(employees) ? employees.filter((e) => e.isActive).length : 0,
-          payslipsGenerated: Array.isArray(payslips) ? payslips.length : 0,
-          totalPayroll: totalNet,
+          payslipsGenerated: Array.isArray(currentMonthPayslips) ? currentMonthPayslips.length : 0,
+          totalPayroll: trendData[trendData.length - 1]?.value || 0,
         });
       } catch (err) {
         console.error(err);
@@ -44,9 +61,9 @@ export default function DashboardPage() {
       <div>
         {/* Welcome Banner Skeleton */}
         <div className="rounded-2xl p-6 mb-8" style={{ background: 'var(--bg-card)' }}>
-          <div className="h-3.5 w-24 rounded bg-gray-200 animate-pulse"></div>
-          <div className="h-6 w-48 rounded bg-gray-200 animate-pulse mt-3"></div>
-          <div className="h-3.5 w-64 rounded bg-gray-200 animate-pulse mt-3"></div>
+          <div className="h-3.5 w-24 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div>
+          <div className="h-6 w-48 rounded bg-gray-200 animate-pulse mt-3" style={{ background: 'var(--border-color)' }}></div>
+          <div className="h-3.5 w-64 rounded bg-gray-200 animate-pulse mt-3" style={{ background: 'var(--border-color)' }}></div>
         </div>
 
         {/* Stats Cards Skeleton */}
@@ -55,26 +72,33 @@ export default function DashboardPage() {
             <div key={i} className="keka-card p-5">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="h-2.5 w-20 rounded bg-gray-200 animate-pulse"></div>
-                  <div className="h-6 w-16 rounded bg-gray-200 animate-pulse mt-3"></div>
+                  <div className="h-2.5 w-20 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div>
+                  <div className="h-6 w-16 rounded bg-gray-200 animate-pulse mt-3" style={{ background: 'var(--border-color)' }}></div>
                 </div>
-                <div className="w-11 h-11 rounded-xl bg-gray-200 animate-pulse"></div>
+                <div className="w-11 h-11 rounded-xl bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div>
               </div>
             </div>
           ))}
         </div>
 
+        {/* Trend Chart Skeleton */}
+        <div className="keka-card p-5 mb-8">
+          <div className="h-4 w-40 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div>
+          <div className="h-3 w-56 rounded bg-gray-200 animate-pulse mt-2" style={{ background: 'var(--border-light)' }}></div>
+          <div className="h-40 rounded bg-gray-200 animate-pulse mt-6" style={{ background: 'var(--border-light)' }}></div>
+        </div>
+
         {/* Quick Actions Skeleton */}
         <div>
-          <div className="h-4 w-32 rounded bg-gray-200 animate-pulse mb-4"></div>
+          <div className="h-4 w-32 rounded bg-gray-200 animate-pulse mb-4" style={{ background: 'var(--border-color)' }}></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="keka-card p-5">
                 <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-xl bg-gray-200 animate-pulse flex-shrink-0"></div>
+                  <div className="w-11 h-11 rounded-xl bg-gray-200 animate-pulse flex-shrink-0" style={{ background: 'var(--border-color)' }}></div>
                   <div className="flex-1">
-                    <div className="h-3.5 w-28 rounded bg-gray-200 animate-pulse"></div>
-                    <div className="h-2.5 w-36 rounded bg-gray-200 animate-pulse mt-2"></div>
+                    <div className="h-3.5 w-28 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div>
+                    <div className="h-2.5 w-36 rounded bg-gray-200 animate-pulse mt-2" style={{ background: 'var(--border-color)' }}></div>
                   </div>
                 </div>
               </div>
@@ -211,6 +235,9 @@ export default function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      {/* Payroll Trend */}
+      <PayrollTrendChart data={trend} />
 
       {/* Quick Actions */}
       <div>

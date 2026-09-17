@@ -21,7 +21,7 @@ export default function DashboardLayout({ children }) {
       <div className="flex-1 flex flex-col min-h-screen overflow-auto">
         {/* Mobile top bar */}
         <div className="sticky top-0 z-30 lg:hidden flex items-center gap-3 px-4 py-3" style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
-          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-gray-100">
+          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover-surface">
             <svg className="w-5 h-5" style={{ color: 'var(--text-primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>

@@ -22,9 +22,10 @@
   --border-light: #f0f1f5;
   --border-input: #9599ad;
   --text-primary: #1a1d3b;
-  --text-secondary: #6b7194;
+  --text-secondary: #333a52;
   --text-muted: #9ca3af;
-  --text-on-card: #374151;
+  --text-on-card: #1f2937;
+  --text-pagination: #333a52;
   --card-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --tree-opacity: 0.15;
   --heading-bg: linear-gradient(90deg, var(--sidebar-bg) 0%, #ffffff 100%);
@@ -52,6 +53,7 @@
   --text-secondary: #8b949e;
   --text-muted: #6e7681;
   --text-on-card: #c9d1d9;
+  --text-pagination: #c9d1d9;
   --card-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
   --tree-opacity: 0.08;
   --heading-bg: linear-gradient(90deg, var(--sidebar-bg) 0%, var(--bg-card-hover) 100%);
@@ -69,6 +71,17 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+/* Consistent keyboard-focus ring, brand-colored, mouse clicks unaffected */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 
 input:focus, select:focus {
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -98,6 +111,72 @@ textarea {
   border: 1px solid var(--border-color);
   transition: background 0.3s, border-color 0.3s;
 }
+
+/* Action column icon buttons: tinted chip + custom hover tooltip (matches the button's own color) */
+.action-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--tt-bg, #f1f5f9);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.1);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.action-icon-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.22), 0 1px 3px rgba(0,0,0,0.12);
+}
+[data-theme="dark"] .action-icon-btn {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.35);
+}
+[data-theme="dark"] .action-icon-btn:hover {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+}
+
+.action-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--tt-fg, #065f46);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 40;
+}
+.action-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--tt-fg, #065f46);
+}
+.action-icon-btn:hover .action-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+[data-theme="dark"] .action-icon-btn {
+  background: color-mix(in srgb, var(--tt-bg, #f1f5f9) 25%, var(--bg-card-hover));
+}
+
+/* Dark-mode-safe replacement for Tailwind's hover:bg-gray-100 (which never adapts to data-theme) */
+.hover-surface:hover:not(:disabled) { background: var(--bg-input); }
+
+.status-badge.is-active { background: #ecfdf5; color: #059669; }
+.status-badge.is-inactive { background: #fef2f2; color: #dc2626; }
+[data-theme="dark"] .status-badge.is-active { background: rgba(52, 211, 153, 0.16); color: #6ee7b7; }
+[data-theme="dark"] .status-badge.is-inactive { background: rgba(248, 113, 113, 0.16); color: #fca5a5; }
 
 .stat-card {
   transition: transform 0.2s, box-shadow 0.2s;
@@ -148,6 +227,26 @@ textarea {
 .btn-success:hover {
   background: linear-gradient(135deg, #059669, #047857);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+.btn-info {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: white;
+  border: none;
+  transition: all 0.2s;
+}
+.btn-info:hover {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+.btn-warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: none;
+  transition: all 0.2s;
+}
+.btn-warning:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
 /* Dark mode global overrides for elements using inline styles */

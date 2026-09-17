@@ -51,19 +51,6 @@ export default function EmployeePayrollPage() {
     fetchData();
   }, [params.id]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex items-center gap-3">
-          <svg className="animate-spin h-5 w-5" style={{ color: 'var(--primary)' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-          <span style={{ color: 'var(--text-secondary)' }}>Loading payroll history...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!employee) return <div className="keka-card text-center py-16" style={{ color: 'var(--text-secondary)' }}>Employee not found</div>;
-
   const totalGross = payslips.reduce((sum, p) => sum + p.earnedGross, 0);
   const totalDeductions = payslips.reduce((sum, p) => sum + p.totalDeductions, 0);
   const totalNet = payslips.reduce((sum, p) => sum + p.netSalary, 0);
@@ -79,14 +66,74 @@ export default function EmployeePayrollPage() {
         <div className="flex items-center gap-2 text-sm mb-1">
           <Link href="/employees" style={{ color: '#9ca0c7' }} className="font-medium hover:underline">Employees</Link>
           <svg className="w-4 h-4" style={{ color: '#9ca0c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-          <Link href={`/employees/${params.id}`} style={{ color: '#9ca0c7' }} className="font-medium hover:underline">{employee.name}</Link>
+          {loading ? (
+            <div className="h-3.5 w-24 rounded bg-white/10 animate-pulse"></div>
+          ) : (
+            <Link href={`/employees/${params.id}/view`} style={{ color: '#9ca0c7' }} className="font-medium hover:underline">{employee?.name}</Link>
+          )}
           <svg className="w-4 h-4" style={{ color: '#9ca0c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
           <span style={{ color: '#9ca0c7' }}>Payroll</span>
         </div>
-        <h1 className="text-lg sm:text-xl font-bold text-white">{employee.name}&apos;s Payroll</h1>
-        <p className="text-xs mt-0.5" style={{ color: '#9ca0c7' }}>{employee.employeeId} · {employee.designation}</p>
+        {loading ? (
+          <>
+            <div className="h-6 w-56 rounded bg-white/10 animate-pulse mb-1.5"></div>
+            <div className="h-3 w-40 rounded bg-white/10 animate-pulse"></div>
+          </>
+        ) : !employee ? (
+          <h1 className="text-lg sm:text-xl font-bold text-white">Employee not found</h1>
+        ) : (
+          <>
+            <h1 className="text-lg sm:text-xl font-bold text-white">{employee.name}&apos;s Payroll</h1>
+            <p className="text-xs mt-0.5" style={{ color: '#9ca0c7' }}>{employee.employeeId} · {employee.designation}</p>
+          </>
+        )}
       </div>
 
+      {loading ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="keka-card p-5">
+                <div className="h-2.5 w-20 rounded bg-gray-200 animate-pulse mb-3" style={{ background: 'var(--border-color)' }}></div>
+                <div className="h-7 w-16 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-light)' }}></div>
+              </div>
+            ))}
+          </div>
+          <div className="keka-card overflow-hidden">
+            <div className="overflow-x-auto hidden md:block">
+              <table className="w-full min-w-[820px]">
+                <thead>
+                  <tr style={{ background: 'var(--bg-header)', borderBottom: '1px solid var(--border-color)' }}>
+                    {[...Array(7)].map((_, i) => (
+                      <th key={i} className="text-left px-5 py-3"><div className="h-3 w-16 rounded" style={{ background: 'var(--border-color)' }}></div></th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...Array(5)].map((_, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                      {[...Array(7)].map((_, j) => (
+                        <td key={j} className="px-5 py-3.5"><div className="h-3.5 w-16 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div></td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-light)' }}>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="p-4 space-y-2">
+                  <div className="h-4 w-28 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div>
+                  <div className="h-10 w-full rounded-lg bg-gray-200 animate-pulse" style={{ background: 'var(--border-light)' }}></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : !employee ? (
+        <div className="keka-card text-center py-16" style={{ color: 'var(--text-secondary)' }}>Employee not found</div>
+      ) : (
+      <>
       {payslips.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="keka-card p-5">
@@ -151,12 +198,14 @@ export default function EmployeePayrollPage() {
                         <span className="text-sm font-bold" style={{ color: '#10b981' }}>₹{p.netSalary.toLocaleString("en-IN")}</span>
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Link href={`/payslips/${p._id}`} className="p-2 rounded-lg transition hover:bg-indigo-50" title="View Payslip">
-                            <svg className="w-4 h-4" style={{ color: 'var(--primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        <div className="flex items-center justify-end gap-2">
+                          <Link href={`/payslips/${p._id}`} className="action-icon-btn" aria-label="View Payslip" style={{ '--tt-bg': '#e0e7ff', '--tt-fg': '#6366f1' }}>
+                            <svg className="w-4 h-4" style={{ color: 'var(--primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            <span className="action-tooltip">View Payslip</span>
                           </Link>
-                          <button onClick={() => downloadPdf(p._id, setDownloading)} className="p-2 rounded-lg transition hover:bg-green-50" title="Download PDF">
-                            <svg className="w-4 h-4" style={{ color: '#10b981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                          <button onClick={() => downloadPdf(p._id, setDownloading)} className="action-icon-btn" aria-label="Download PDF" style={{ '--tt-bg': '#d1fae5', '--tt-fg': '#10b981' }}>
+                            <svg className="w-4 h-4" style={{ color: '#10b981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            <span className="action-tooltip">Download PDF</span>
                           </button>
                         </div>
                       </td>
@@ -208,6 +257,8 @@ export default function EmployeePayrollPage() {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

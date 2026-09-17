@@ -1,7 +1,8 @@
-import { Document, View, Text } from "@react-pdf/renderer";
+import { Document, View, Text, Image } from "@react-pdf/renderer";
 import { BrandedPage } from "./BrandedPage";
 import { B, U, NumberedItem, RomanItem } from "./text";
 import { SalaryTable } from "./SalaryTable";
+import { getStampBase64 } from "@/lib/pdfLayout";
 
 function fmtDate(date) {
   if (!date) return "___________";
@@ -13,7 +14,7 @@ function fmt(n) {
 
 const CO = "Nilkanta";
 
-export function OfferLetterDocument({ employee: emp, client }) {
+export function SolaraOfferLetterDocument({ employee: emp, client }) {
   const name = `${emp.firstName || ""} ${emp.lastName || ""}`.trim();
   const address = [emp.address, emp.city].filter(Boolean).join(", ") || "___________";
   const doj = fmtDate(emp.dateOfJoining);
@@ -21,6 +22,7 @@ export function OfferLetterDocument({ employee: emp, client }) {
   const clLoc = emp.clientLocation || "";
   const desig = emp.designation || "___________";
   const empCode = emp.employeeId || "___________";
+  const stamp = getStampBase64();
 
   const b = emp.basicSalary || 0, h = emp.hra || 0, d = emp.da || 0, oa = emp.otherAllowance || 0;
   const gross = b + h + d + oa;
@@ -102,7 +104,7 @@ export function OfferLetterDocument({ employee: emp, client }) {
           </RomanItem>
           <RomanItem index={7}>
             Report and be present at the designated location during the working hours mentioned herein and abide
-            by the rules and regulations as required by our client the {CO} Management Services Private Limited.
+            by the rules and regulations as required by our client the {CL}.
           </RomanItem>
           <RomanItem index={8}>
             Comply with the safety, health and other rules and regulations of {CO} Management Services
@@ -110,7 +112,8 @@ export function OfferLetterDocument({ employee: emp, client }) {
           </RomanItem>
           <RomanItem index={9}>
             During the course of your contract, you can be transferred to a location within the territory of India
-            as and when required by {CO} Management Services Private Limited for executing the services.
+            as and when required by {CO} Management Services Private Limited for executing the services
+            provided herein.
           </RomanItem>
         </View>
 
@@ -153,8 +156,8 @@ export function OfferLetterDocument({ employee: emp, client }) {
         <NumberedItem index={9}>
           Details of your salary breakup will be as per the Annexure attached herein. You hereby authorize {CO}{" "}
           Management Services Private Limited to make all salary payments required to be made to you by {CO}{" "}
-          Management Services Private Limited either by way of Cheque or by directly crediting the amounts to your
-          bank account.
+          Management Services Private Limited including all reimbursements either by way of Cheque or by directly
+          crediting the amounts to your bank account.
         </NumberedItem>
         <NumberedItem index={10}>
           You shall be subject to background check and in the event the background check is negative, the company
@@ -188,13 +191,13 @@ export function OfferLetterDocument({ employee: emp, client }) {
         </NumberedItem>
         <NumberedItem index={16}>
           You shall not, either during or after termination of your employment with our client {CL} give out to any
-          third part by word of mouth or otherwise, the Proprietary and/or Confidential information of the Company,
+          third part by word of mouth or otherwise, the Proprietary and/or Confidential Information of the Company,
           that shall include but not limited to all information, software (whether in object or source code),
           statistics, data, data base, knowledge, trade secrets, inventions, products detail, knowhow, formula,
           processes, designs, drawings, charts, maps, concepts, ideas, systems, project plans, business plans, {CL}{" "}
           details, security information, any other creations of whatsoever nature, kind or description,
           organizational matters pertaining to company or our client {CL}. Further, you shall not at any time,
-          whether during or after the period of employment, use any Proprietary or Confidential information or any
+          whether during or after the period of employment, use such Proprietary or Confidential information or any
           part thereof, for your own benefit or for the benefit of any person, firm, company or other legal entity
           other that our client {CL}. These <U>Non-Disclosure</U> obligations enumerated above shall be binding on
           you at all times, irrespective of whether you continue to be employed by the company or not.
@@ -211,7 +214,10 @@ export function OfferLetterDocument({ employee: emp, client }) {
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 30 }}>
             <View style={{ width: "45%" }}>
               <Text style={{ fontFamily: "Times-Bold" }}>For {CO} Management Services Pvt Ltd</Text>
-              <Text style={{ marginTop: 40, fontFamily: "Times-Bold" }}>Authorized Signatory</Text>
+              {stamp ? (
+                <Image src={stamp} style={{ width: 70, marginTop: 6, marginBottom: 4, marginLeft: 15, opacity: 0.85 }} />
+              ) : null}
+              <Text style={{ marginTop: stamp ? 0 : 40, fontFamily: "Times-Bold" }}>Authorized Signatory</Text>
               <Text>P. Bikshapathi</Text>
               <Text>Head &ndash; Human Resources</Text>
             </View>

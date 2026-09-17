@@ -1,7 +1,8 @@
-import { Document, View, Text } from "@react-pdf/renderer";
+import { Document, View, Text, Image } from "@react-pdf/renderer";
 import { BrandedPage } from "./BrandedPage";
 import { B, U, NumberedItem, RomanItem } from "./text";
 import { SalaryTable } from "./SalaryTable";
+import { getStampBase64 } from "@/lib/pdfLayout";
 
 function fmtDate(date) {
   if (!date) return "___________";
@@ -10,10 +11,15 @@ function fmtDate(date) {
 function fmt(n) {
   return (n || 0).toLocaleString("en-IN");
 }
+function maxFlatSlab(slabs) {
+  if (!Array.isArray(slabs) || !slabs.length) return 0;
+  return slabs.reduce((max, s) => (s.type === "Flat" && Number(s.value) > max ? Number(s.value) : max), 0);
+}
 
 const CO = "Nilkanta";
+const PF_WAGE_CEILING = 15000;
 
-export function OfferLetterDocument({ employee: emp, client }) {
+export function TriveniOfferLetterDocument({ employee: emp, client }) {
   const name = `${emp.firstName || ""} ${emp.lastName || ""}`.trim();
   const address = [emp.address, emp.city].filter(Boolean).join(", ") || "___________";
   const doj = fmtDate(emp.dateOfJoining);
@@ -21,33 +27,54 @@ export function OfferLetterDocument({ employee: emp, client }) {
   const clLoc = emp.clientLocation || "";
   const desig = emp.designation || "___________";
   const empCode = emp.employeeId || "___________";
+  const stamp = getStampBase64();
 
-  const b = emp.basicSalary || 0, h = emp.hra || 0, d = emp.da || 0, oa = emp.otherAllowance || 0;
-  const gross = b + h + d + oa;
-  const epfE = emp.pfEnabled ? Math.round(b * 0.12) : 0;
+  const basic = emp.basicSalary || 0;
+  const da = emp.da || 0;
+  const hra = emp.hra || 0;
+  const specialAllowance = maxFlatSlab(emp.specialAllowanceSlabs);
+  const performanceAllowance = maxFlatSlab(emp.performanceBonusSlabs);
+  const leaveWithWages = maxFlatSlab(emp.leaveEncashmentSlabs);
+  const gross = basic + da + specialAllowance + performanceAllowance + hra + leaveWithWages;
+
+  const pfWage = Math.min(basic + da, PF_WAGE_CEILING);
+  const epfE = emp.pfEnabled ? Math.round(pfWage * 0.12) : 0;
   const esicE = emp.esiEnabled && gross <= 21000 ? Math.round(gross * 0.0075) : 0;
   const pt = emp.professionalTax || 0;
-  const totDed = epfE + esicE + pt;
+  const tds = Math.round(gross * ((emp.tdsPercent || 0) / 100));
+  const lwf = emp.lwf || 0;
+  const totDed = epfE + esicE + pt + tds + lwf;
   const net = gross - totDed;
-  const epfR = emp.pfEnabled ? Math.round(b * 0.12) : 0;
+  const epfR = emp.pfEnabled ? Math.round(pfWage * 0.13) : 0;
   const esicR = emp.esiEnabled && gross <= 21000 ? Math.round(gross * 0.0325) : 0;
   const ctc = gross + epfR + esicR;
 
-  const rows = [
-    { label: "Basic", value: fmt(b) },
-    { label: "HRA", value: fmt(h) },
-    { label: "DA / Dearness Allowance", value: fmt(d) },
-    { label: "Other Allowance", value: fmt(oa) },
-    { label: "Gross Salary (A)", value: fmt(gross), bold: true, variant: "green" },
-    { label: "EPF Contribution [Employee] (12%)", value: fmt(epfE) },
-    { label: "ESIC Contribution [Employee] (0.75%)", value: fmt(esicE) },
-    { label: "Professional Tax", value: fmt(pt) },
-    { label: "Total Deduction (B)", value: fmt(totDed), bold: true, variant: "yellow" },
-    { label: "Net Take Home Salary (A - B)", value: fmt(net), bold: true, variant: "blue" },
-    { label: "EPF Contribution [Employer] (12%)", value: fmt(epfR) },
-    { label: "ESIC Contribution [Employer] (3.25%)", value: fmt(esicR) },
-    { label: "CTC", value: fmt(ctc), bold: true, variant: "green" },
+  const rowDefs = [
+    { label: "Basic", n: basic },
+    { label: "DA", n: da },
+    { label: "Special Allowance", n: specialAllowance },
+    { label: "Performance Allowance", n: performanceAllowance },
+    { label: "HRA", n: hra },
+    { label: "Leave with wages", n: leaveWithWages },
+    { label: "Gross Salary (A)", n: gross, bold: true, variant: "green" },
+    { label: "EPF Contribution [Employee] (12%)", n: epfE },
+    { label: "ESIC Contribution [Employee] (0.75%)", n: esicE },
+    { label: "Professional Tax", n: pt },
+    { label: "TDS", n: tds },
+    { label: "LWF", n: lwf },
+    { label: "Total Deduction (B)", n: totDed, bold: true, variant: "yellow" },
+    { label: "Net Take Home Salary (A - B)", n: net, bold: true, variant: "blue" },
+    { label: "EPF Contribution [Employer] (13%)", n: epfR },
+    { label: "ESIC Contribution [Employer] (3.25%)", n: esicR },
+    { label: "Cost to Company (CTC)", n: ctc, bold: true, variant: "green" },
   ];
+  const rows = rowDefs.map((r) => ({
+    label: r.label,
+    value: fmt(r.n),
+    yearly: fmt(r.n * 12),
+    bold: r.bold,
+    variant: r.variant,
+  }));
 
   return (
     <Document>
@@ -102,7 +129,7 @@ export function OfferLetterDocument({ employee: emp, client }) {
           </RomanItem>
           <RomanItem index={7}>
             Report and be present at the designated location during the working hours mentioned herein and abide
-            by the rules and regulations as required by our client the {CO} Management Services Private Limited.
+            by the rules and regulations as required by our client the {CL}.
           </RomanItem>
           <RomanItem index={8}>
             Comply with the safety, health and other rules and regulations of {CO} Management Services
@@ -110,7 +137,8 @@ export function OfferLetterDocument({ employee: emp, client }) {
           </RomanItem>
           <RomanItem index={9}>
             During the course of your contract, you can be transferred to a location within the territory of India
-            as and when required by {CO} Management Services Private Limited for executing the services.
+            as and when required by {CO} Management Services Private Limited for executing the services
+            provided herein.
           </RomanItem>
         </View>
 
@@ -153,8 +181,8 @@ export function OfferLetterDocument({ employee: emp, client }) {
         <NumberedItem index={9}>
           Details of your salary breakup will be as per the Annexure attached herein. You hereby authorize {CO}{" "}
           Management Services Private Limited to make all salary payments required to be made to you by {CO}{" "}
-          Management Services Private Limited either by way of Cheque or by directly crediting the amounts to your
-          bank account.
+          Management Services Private Limited including all reimbursements either by way of Cheque or by directly
+          crediting the amounts to your bank account.
         </NumberedItem>
         <NumberedItem index={10}>
           You shall be subject to background check and in the event the background check is negative, the company
@@ -188,19 +216,48 @@ export function OfferLetterDocument({ employee: emp, client }) {
         </NumberedItem>
         <NumberedItem index={16}>
           You shall not, either during or after termination of your employment with our client {CL} give out to any
-          third part by word of mouth or otherwise, the Proprietary and/or Confidential information of the Company,
+          third part by word of mouth or otherwise, the Proprietary and/or Confidential Information of the Company,
           that shall include but not limited to all information, software (whether in object or source code),
           statistics, data, data base, knowledge, trade secrets, inventions, products detail, knowhow, formula,
           processes, designs, drawings, charts, maps, concepts, ideas, systems, project plans, business plans, {CL}{" "}
           details, security information, any other creations of whatsoever nature, kind or description,
           organizational matters pertaining to company or our client {CL}. Further, you shall not at any time,
-          whether during or after the period of employment, use any Proprietary or Confidential information or any
+          whether during or after the period of employment, use such Proprietary or Confidential information or any
           part thereof, for your own benefit or for the benefit of any person, firm, company or other legal entity
           other that our client {CL}. These <U>Non-Disclosure</U> obligations enumerated above shall be binding on
           you at all times, irrespective of whether you continue to be employed by the company or not.
         </NumberedItem>
         <NumberedItem index={17}>
           This Contract Employment letter shall be coterminous with the agreement we have with our client {CL}.
+        </NumberedItem>
+        <NumberedItem index={18}>
+          If the employee desires to leave the company, he/she needs to serve notice period of &lsquo;15&rsquo; days
+          in prior and give a written letter. If Employee does not serve the complete notice period, then the short
+          served days will be deducted from his/her salary; the employee will be eligible for salary only if he/she
+          works for a minimum of 15 days with us.
+        </NumberedItem>
+        <NumberedItem index={19}>
+          The Employee is responsible for all company assets under their supervision. They are accountable for any
+          asset loss or damage that occurs during their presence or under their process control, even if not
+          directly involved. The Company may recover the cost of lost or damaged assets from the Employee&rsquo;s
+          remuneration. The Employee will be notified of any recovery decision.
+        </NumberedItem>
+        <NumberedItem index={20}>
+          Please note that we want to keep the payout time cycle of 21st to 20th of every month; the salary payout
+          will happen by the 7th of the following month.
+        </NumberedItem>
+        <NumberedItem index={21}>
+          You shall not, either during or after termination of your employment with the client, give out to any
+          third party by word of mouth or otherwise, the Proprietary and/or Confidential Information of the
+          Company, that shall include but not limited to all information, software (whether in object or source
+          code), statistics, data, data base, knowledge, trade secrets, inventions, products detail, know-how,
+          formula, processes, designs, drawings, charts, maps, concepts, ideas, systems, project plans, business
+          plans, client details, security information, and any other creations of whatsoever nature, kind or
+          description, organizational matters pertaining to the company or our client. Further, you shall not at
+          any time, whether during or after the period of employment, use such Proprietary or Confidential
+          information or any part thereof, for your own benefit or for the benefit of any person, firm, company or
+          other legal entity other than our client. These non-disclosure obligations enumerated above shall be
+          binding on you at all times, irrespective of whether you continue to be employed by the company or not.
         </NumberedItem>
 
         <View style={{ marginTop: 20 }}>
@@ -211,7 +268,10 @@ export function OfferLetterDocument({ employee: emp, client }) {
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 30 }}>
             <View style={{ width: "45%" }}>
               <Text style={{ fontFamily: "Times-Bold" }}>For {CO} Management Services Pvt Ltd</Text>
-              <Text style={{ marginTop: 40, fontFamily: "Times-Bold" }}>Authorized Signatory</Text>
+              {stamp ? (
+                <Image src={stamp} style={{ width: 70, marginTop: 6, marginBottom: 4, marginLeft: 15, opacity: 0.85 }} />
+              ) : null}
+              <Text style={{ marginTop: stamp ? 0 : 40, fontFamily: "Times-Bold" }}>Authorized Signatory</Text>
               <Text>P. Bikshapathi</Text>
               <Text>Head &ndash; Human Resources</Text>
             </View>
@@ -226,8 +286,8 @@ export function OfferLetterDocument({ employee: emp, client }) {
 
       <BrandedPage>
         <SalaryTable
-          title={`${client?.clientName || "___________"}${clLoc ? " - " + clLoc : ""}`}
-          columnHeaders={["Salary Head", "Amount (Rs.)"]}
+          title={`Salary Annexure I${clLoc ? " - " + clLoc : ""}`}
+          columnHeaders={["Particulars", "Amount (Per Month)", "Yearly"]}
           rows={rows}
         />
         <Text style={{ textAlign: "center", fontSize: 9, color: "#555555", marginTop: 8 }}>

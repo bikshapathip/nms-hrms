@@ -262,20 +262,20 @@ export default function AttendancePage() {
         <div className="keka-card overflow-hidden">
           <table className="w-full min-w-[700px]">
             <thead><tr style={{ background: 'var(--bg-header)', borderBottom: '1px solid var(--border-color)' }}>
-              <th className="text-left px-5 py-3"><div className="h-3 w-24 rounded bg-gray-200"></div></th>
-              <th className="text-center px-4 py-3"><div className="h-3 w-16 rounded bg-gray-200 mx-auto"></div></th>
-              <th className="text-center px-4 py-3"><div className="h-3 w-16 rounded bg-gray-200 mx-auto"></div></th>
-              <th className="text-center px-4 py-3"><div className="h-3 w-14 rounded bg-gray-200 mx-auto"></div></th>
-              <th className="text-center px-4 py-3"><div className="h-3 w-14 rounded bg-gray-200 mx-auto"></div></th>
+              <th className="text-left px-5 py-3"><div className="h-3 w-24 rounded bg-gray-200" style={{ background: 'var(--border-color)' }}></div></th>
+              <th className="text-center px-4 py-3"><div className="h-3 w-16 rounded bg-gray-200 mx-auto" style={{ background: 'var(--border-color)' }}></div></th>
+              <th className="text-center px-4 py-3"><div className="h-3 w-16 rounded bg-gray-200 mx-auto" style={{ background: 'var(--border-color)' }}></div></th>
+              <th className="text-center px-4 py-3"><div className="h-3 w-14 rounded bg-gray-200 mx-auto" style={{ background: 'var(--border-color)' }}></div></th>
+              <th className="text-center px-4 py-3"><div className="h-3 w-14 rounded bg-gray-200 mx-auto" style={{ background: 'var(--border-color)' }}></div></th>
             </tr></thead>
             <tbody>
               {[...Array(8)].map((_, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                  <td className="px-5 py-4"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div><div className="space-y-1.5"><div className="h-3.5 w-28 rounded bg-gray-200 animate-pulse"></div><div className="h-2.5 w-20 rounded bg-gray-100 animate-pulse"></div></div></div></td>
-                  <td className="px-4 py-4 text-center"><div className="h-8 w-16 rounded bg-gray-200 animate-pulse mx-auto"></div></td>
-                  <td className="px-4 py-4 text-center"><div className="h-8 w-16 rounded bg-gray-200 animate-pulse mx-auto"></div></td>
-                  <td className="px-4 py-4 text-center"><div className="h-6 w-10 rounded bg-gray-200 animate-pulse mx-auto"></div></td>
-                  <td className="px-4 py-4 text-center"><div className="h-8 w-16 rounded bg-gray-200 animate-pulse mx-auto"></div></td>
+                  <td className="px-5 py-4"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div><div className="space-y-1.5"><div className="h-3.5 w-28 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div><div className="h-2.5 w-20 rounded bg-gray-100 animate-pulse" style={{ background: 'var(--border-light)' }}></div></div></div></td>
+                  <td className="px-4 py-4 text-center"><div className="h-8 w-16 rounded bg-gray-200 animate-pulse mx-auto" style={{ background: 'var(--border-color)' }}></div></td>
+                  <td className="px-4 py-4 text-center"><div className="h-8 w-16 rounded bg-gray-200 animate-pulse mx-auto" style={{ background: 'var(--border-color)' }}></div></td>
+                  <td className="px-4 py-4 text-center"><div className="h-6 w-10 rounded bg-gray-200 animate-pulse mx-auto" style={{ background: 'var(--border-color)' }}></div></td>
+                  <td className="px-4 py-4 text-center"><div className="h-8 w-16 rounded bg-gray-200 animate-pulse mx-auto" style={{ background: 'var(--border-color)' }}></div></td>
                 </tr>
               ))}
             </tbody>

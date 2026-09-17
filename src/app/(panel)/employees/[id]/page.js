@@ -10,6 +10,7 @@ import SlabField from "@/components/SlabField";
 import { computeSalarySummary } from "@/lib/salaryCalc";
 import { SLAB_FIELDS, initSlabState, slabsFromDoc, slabsToBody } from "@/lib/slabFields";
 import SweetAlert, { showUpdateConfirm, showSuccessUpdate, showError, showLoading } from "@/components/common/SweetAlert";
+import { OFFER_LETTER_TEMPLATE_OPTIONS } from "@/lib/offerLetterTemplateOptions";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition";
 const inputStyle = { border: '1px solid var(--border-input)', color: 'var(--text-primary)' };
@@ -36,6 +37,26 @@ function Select({ label, required, name, value, onChange, options, disabled, pla
         disabled={disabled}
         clearable={clearable}
       />
+    </div>
+  );
+}
+
+function SkeletonField() {
+  return (
+    <div className="space-y-2">
+      <div className="h-2.5 w-20 rounded animate-pulse" style={{ background: 'var(--border-color)' }}></div>
+      <div className="h-9 w-full rounded-lg animate-pulse" style={{ background: 'var(--border-light)' }}></div>
+    </div>
+  );
+}
+
+function SkeletonSection({ title, count }) {
+  return (
+    <div className="keka-card p-6">
+      <h2 className="text-sm font-bold uppercase tracking-wider mb-4" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[...Array(count)].map((_, i) => <SkeletonField key={i} />)}
+      </div>
     </div>
   );
 }
@@ -72,6 +93,7 @@ export default function EditEmployeePage() {
   const [form, setForm] = useState({
     employeeId: "", firstName: "", lastName: "", gender: "Male", dateOfBirth: "", contactNumber: "", email: "",
     designation: "", client: "", clientLocation: "", dateOfJoining: "",
+    offerLetterTemplate: "default",
     city: "", state: "", address: "", addressCity: "", addressState: "", addressZipCode: "", maritalStatus: "Single", referenceUser: "", remarks: "",
     panNumber: "", aadharNumber: "", esicNumber: "", uanNumber: "",
     bankName: "", bankAccount: "", ifscCode: "",
@@ -142,6 +164,7 @@ export default function EditEmployeePage() {
         setForm({ employeeId: d.employeeId||"", firstName: d.firstName||"", lastName: d.lastName||"", gender: d.gender||"Male",
           dateOfBirth: d.dateOfBirth?d.dateOfBirth.split("T")[0]:"", contactNumber: d.contactNumber||"", email: d.email||"",
           designation: d.designation||"", client: cId, clientLocation: d.clientLocation||"",
+          offerLetterTemplate: d.offerLetterTemplate||"default",
           dateOfJoining: d.dateOfJoining?d.dateOfJoining.split("T")[0]:"", city: d.city||"", state: d.state||"", address: d.address||"",
           addressCity: d.addressCity||"", addressState: d.addressState||"", addressZipCode: d.addressZipCode||"",
           maritalStatus: d.maritalStatus||"Single", referenceUser: refId, remarks: d.remarks||"",
@@ -225,8 +248,6 @@ export default function EditEmployeePage() {
     );
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><svg className="animate-spin h-5 w-5" style={{color:'var(--primary)'}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></div>;
-
   const summary = computeSalarySummary(form);
 
   return (
@@ -252,13 +273,20 @@ export default function EditEmployeePage() {
           <div className="flex items-center gap-2 text-sm mb-1"><Link href="/employees" style={{color:'#9ca0c7'}} className="font-medium hover:underline">Employees</Link><svg className="w-4 h-4" style={{color:'#9ca0c7'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg><span style={{color:'#9ca0c7'}}>Edit</span></div>
           <h1 className="text-lg sm:text-xl font-bold text-white">Edit Employee</h1>
         </div>
-        <Link href={`/employees/${params.id}/payroll`} className="px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 transition bg-white/10 hover:bg-white/20 text-white">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>
-          View Payroll
-        </Link>
       </div>
       {error && <div className="p-3 rounded-lg text-sm mb-5" style={{background:'#fef2f2',color:'#dc2626',border:'1px solid #fecaca'}}>{error}</div>}
 
+      {loading ? (
+        <div className="space-y-5">
+          <SkeletonSection title="Personal Information" count={12} />
+          <SkeletonSection title="Client, Branch & Salary Template" count={6} />
+          <SkeletonSection title="Employment Details" count={5} />
+          <SkeletonSection title="Documents" count={4} />
+          <SkeletonSection title="Bank Details" count={3} />
+          <SkeletonSection title="Salary (Monthly ₹)" count={6} />
+          <SkeletonSection title="Deductions" count={7} />
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="keka-card p-6"><h2 className="text-sm font-bold uppercase tracking-wider mb-4" style={{color:'var(--text-primary)'}}>Personal Information</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -283,6 +311,8 @@ export default function EditEmployeePage() {
             <Select label="State" name="state" value={form.state} onChange={handleChange} disabled={!form.client} options={availableStates} />
             <Select label="City" name="city" value={form.city} onChange={handleChange} disabled={!form.state} options={availableCities} />
             <Select label="Location" name="clientLocation" value={form.clientLocation} onChange={handleChange} disabled={!form.city} options={availableLocations} />
+            <Select label="Offer Letter Template" name="offerLetterTemplate" value={form.offerLetterTemplate} onChange={handleChange}
+              clearable={false} options={OFFER_LETTER_TEMPLATE_OPTIONS} />
             <div className="sm:col-span-2 lg:col-span-4">
               <Select
                 label="Salary Template"
@@ -422,6 +452,7 @@ export default function EditEmployeePage() {
           <button type="button" onClick={()=>router.back()} className="px-6 py-2.5 rounded-lg text-sm font-semibold transition" style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-input)', boxShadow: 'var(--card-shadow)' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-input)'; e.currentTarget.style.borderColor = 'var(--primary)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.borderColor = 'var(--border-input)'; }}>Cancel</button>
         </div>
       </form>
+      )}
     </div>
   );
 }

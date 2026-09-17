@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Employee from "@/models/Employee";
 import Client from "@/models/Client";
-import { OfferLetterDocument } from "@/lib/pdf/OfferLetterDocument";
+import { getOfferLetterComponent } from "@/lib/pdf/offerLetterTemplates";
 
 export const runtime = "nodejs";
 
@@ -21,7 +21,8 @@ export async function GET(request, { params }) {
   if (employee.client) client = await Client.findById(employee.client).lean();
 
   try {
-    const pdfBuffer = await renderToBuffer(<OfferLetterDocument employee={employee} client={client} />);
+    const OfferLetterTemplate = getOfferLetterComponent(employee.offerLetterTemplate);
+    const pdfBuffer = await renderToBuffer(<OfferLetterTemplate employee={employee} client={client} />);
 
     const empName = `${employee.firstName || ""}_${employee.lastName || ""}`.replace(/\s+/g, "_");
     return new NextResponse(pdfBuffer, {

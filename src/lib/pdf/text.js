@@ -29,7 +29,7 @@ export function NumberedItem({ index, children }) {
 
 export function NumberedItemWrap({ index, children }) {
   return (
-    <View style={{ flexDirection: "row", marginBottom: 8 }}>
+    <View style={{ flexDirection: "row", marginBottom: 8 }} wrap={false}>
       <Text style={{ width: 18 }}>{index}.</Text>
       <Text style={{ flex: 1, textAlign: "justify" }}>{children}</Text>
     </View>
@@ -38,8 +38,19 @@ export function NumberedItemWrap({ index, children }) {
 
 export function RomanItem({ index, children }) {
   return (
-    <View style={{ flexDirection: "row", marginLeft: 16, marginBottom: 6 }}>
+    <View style={{ flexDirection: "row", marginLeft: 16, marginBottom: 6 }} wrap={false}>
       <Text style={{ width: 26 }}>{ROMAN[index - 1]}.</Text>
+      <Text style={{ flex: 1, textAlign: "justify" }}>{children}</Text>
+    </View>
+  );
+}
+
+const ALPHA = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
+
+export function AlphaItem({ index, children }) {
+  return (
+    <View style={{ flexDirection: "row", marginLeft: 16, marginBottom: 6 }} wrap={false}>
+      <Text style={{ width: 20 }}>{ALPHA[index - 1]}.</Text>
       <Text style={{ flex: 1, textAlign: "justify" }}>{children}</Text>
     </View>
   );
