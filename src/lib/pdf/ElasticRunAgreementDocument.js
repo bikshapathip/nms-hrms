@@ -1,6 +1,6 @@
 import { Document, View, Text, Image } from "@react-pdf/renderer";
 import { BrandedPage } from "./BrandedPage";
-import { B, U, NumberedItemWrap, RomanItem, Paragraph } from "./text";
+import { B, NumberedItemWrap, RomanItem, AlphaItem, Paragraph } from "./text";
 import { getStampBase64 } from "@/lib/pdfLayout";
 
 function ordinalDate(date) {
@@ -51,7 +51,7 @@ export function ElasticRunAgreementDocument({ employee: emp }) {
         </Paragraph>
         <Text style={{ textAlign: "center", fontFamily: "Times-Bold", marginBottom: 8 }}>BY AND BETWEEN</Text>
         <Paragraph>
-          <U>NILKANTA MANAGEMENT SERIVICES PRIVATE LIMITED</U> a Company established under the laws of India, having
+          <B>NILKANTA MANAGEMENT SERIVICES PRIVATE LIMITED</B> a Company established under the laws of India, having
           its registered place of business at H.No.12-10-409/25/1, BIDAL BASTI, SITAPHALMANDI, SECUNDERABAD,
           HYDERABAD- 500061, Telangana, (which expression shall unless it be repugnant to the context or the meaning
           thereof, mean and include its successors-in-interest and permitted assigns) being &quot;Company&quot; of the FIRST
@@ -59,7 +59,7 @@ export function ElasticRunAgreementDocument({ employee: emp }) {
         </Paragraph>
         <Text style={{ textAlign: "center", fontFamily: "Times-Bold", marginBottom: 8 }}>AND</Text>
         <Paragraph>
-          <U>{name}</U> individual having its residence at {residence}. bearing Pan No. <B>{pan}</B> and Aadhaar No{" "}
+          <B>{name}</B> individual having its residence at {residence}. bearing Pan No. <B>{pan}</B> and Aadhaar No{" "}
           <B>{aadhaar}</B> (which expression shall unless it be repugnant to the context or the meaning thereof,
           mean and include its successors-in-interest and permitted assigns) being &ldquo;Business Partner&rdquo; of the
           OTHER PART. (Company and Business Partner shall hereinafter be individually referred to as &lsquo;Party&rsquo; and
@@ -68,19 +68,20 @@ export function ElasticRunAgreementDocument({ employee: emp }) {
           E-commerce companies as well as such third-party consignors.
         </Paragraph>
         <Paragraph>
-          AND WHEREAS, Business Partner represents to the Company that it is engaged in performing services such as
-          delivery of the allocated packages, planning daily travel routes based on delivery location, accepting and
-          recording payments after delivering packages, acquiring acknowledgement from the customers, sorting,
-          packaging and other activities, in the capacity of an independent contractor.
+          <B>AND WHEREAS,</B> Business Partner represents to the Company that it is engaged in performing services
+          such as delivery of the allocated packages, planning daily travel routes based on delivery location,
+          accepting and recording payments after delivering packages, acquiring acknowledgement from the customers,
+          sorting, packaging and other activities, in the capacity of an independent contractor.
         </Paragraph>
         <Paragraph>
-          AND WHEREAS, based on the proposal and representations submitted by Business Partner, Company is willing
-          to engage the services purely as an independent contractor and the Business Partner is willing to provide
-          the same service purely as an independent contractor on such terms and conditions agreed herein below.
+          <B>AND WHEREAS,</B> based on the proposal and representations submitted by Business Partner, Company is
+          willing to engage the services purely as an independent contractor and the Business Partner is willing to
+          provide the same service purely as an independent contractor on such terms and conditions agreed herein
+          below.
         </Paragraph>
         <Paragraph>
-          NOW THEREFORE, in consideration of the mutual covenants herein contained, the parties hereby agree, as
-          follows:
+          <B>NOW THEREFORE,</B> in consideration of the mutual covenants herein contained, the parties hereby agree,
+          as follows:
         </Paragraph>
         <Paragraph>
           The parties hereto agree that the aforesaid recitals shall form the integral and operative part of this
@@ -178,8 +179,8 @@ export function ElasticRunAgreementDocument({ employee: emp }) {
         </NumberedItemWrap>
 
         <NumberedItemWrap index={9}><B>Confidentiality:</B></NumberedItemWrap>
-        <View style={{ marginLeft: 18, marginTop: -6 }}>
-          <Paragraph>
+        <View style={{ marginTop: -6 }}>
+          <AlphaItem index={1}>
             During the performance of its obligations under this Agreement, Business Partner may have access to
             oral &amp; written information which is considered confidential and trade secret of The Company which
             shall be kept fully confidential by Business Partner. Information considered confidential by The
@@ -194,8 +195,8 @@ export function ElasticRunAgreementDocument({ employee: emp }) {
             via any application of the Company, or disclosed by the any customer or third party of the Company or
             developed therefrom with the same degree of care as Business Partner applies to its own Confidential
             and Proprietary Information, but in all cases with at least a reasonable degree of care.
-          </Paragraph>
-          <Paragraph>
+          </AlphaItem>
+          <AlphaItem index={2}>
             Business Partner agrees that during the term of this Agreement it will not disclose any Confidential
             Information to any third party without the prior written consent of The Company. Provided that the
             aforesaid disclosure shall not be applicable and shall impose no obligation on Business Partner with
@@ -204,22 +205,25 @@ export function ElasticRunAgreementDocument({ employee: emp }) {
             order/notice and other sufficient details immediately upon receipt of such orders in order to permit
             The Company to make an application for an appropriate protective order and provide such
             information/documents as may be advised by The Company in writing.
-          </Paragraph>
-          <Paragraph>
+          </AlphaItem>
+          <AlphaItem index={3}>
             Except as set forth in this Agreement, Business Partner shall not use, disclose, make or have made any
             copies of any materials or information provided by The Company, shared via any application of the
             Company or its customer, or any information shared by the Customer of the Company or any information
             developed therefrom in whole or in part, without the prior written approval of The Company.
-          </Paragraph>
-          <Paragraph>
+          </AlphaItem>
+          <AlphaItem index={4}>
             Business Partner understands and agrees that any use or dissemination of any information or materials
             in violation or breach of this Agreement will cause The Company irreparable harm, will leave The
             Company with no adequate remedy at law and will entitle The Company to injunctive relief in addition to
             all other remedies available under law for the time being in force. In case Business Partner violates
             its obligations hereunder, it shall reimburse The Company for reasonable costs and expenses incurred in
             enforcement of this Clause.
-          </Paragraph>
-          <Paragraph>The Confidentiality Obligations of the Parties shall survive after the termination or expiry of this agreement.</Paragraph>
+          </AlphaItem>
+          <AlphaItem index={5}>
+            The Confidentiality Obligations of the Parties shall survive after the termination or expiry of this
+            agreement.
+          </AlphaItem>
         </View>
 
         <NumberedItemWrap index={10}><B>Relationship between the Parties:</B></NumberedItemWrap>
@@ -289,17 +293,17 @@ export function ElasticRunAgreementDocument({ employee: emp }) {
         </Paragraph>
 
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 24 }} wrap={false}>
-          <View style={{ width: "45%", position: "relative" }}>
+          <View style={{ width: "45%" }}>
             <Text style={{ fontFamily: "Times-Bold" }}>For NILKANTA MANAGEMENT SERIVICES PRIVATE LIMITED</Text>
             {stamp ? (
-              <Image src={stamp} style={{ position: "absolute", top: 28, left: 15, width: 85, opacity: 0.85 }} />
+              <Image src={stamp} style={{ width: 70, marginTop: 6, marginBottom: 4, marginLeft: 15, opacity: 0.85 }} />
             ) : null}
-            <Text style={{ marginTop: 40 }}>Name: P.Bikshapathi</Text>
+            <Text style={{ marginTop: stamp ? 0 : 40 }}>Name: P.Bikshapathi</Text>
             <Text>Designation: Director</Text>
           </View>
-          <View style={{ width: "45%" }}>
+          <View style={{ width: "45%", alignItems: "flex-end" }}>
             <Text style={{ fontFamily: "Times-Bold" }}>For Business Partner</Text>
-            <Text style={{ marginTop: 40 }}>Name: {name}</Text>
+            <Text style={{ marginTop: stamp ? 76 : 40 }}>Name: {name}</Text>
             <Text>Title: {desig}</Text>
           </View>
         </View>

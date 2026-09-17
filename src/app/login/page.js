@@ -53,7 +53,7 @@ export default function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
-          <h1 className="text-4xl font-bold mb-3" style={{ letterSpacing: '2px', color: '#312e81' }}>HRIS</h1>
+          <h1 className="text-4xl font-bold mb-3" style={{ letterSpacing: '2px', color: '#312e81' }}>HRMS</h1>
           <p style={{ color: '#6b7280', fontSize: '16px', lineHeight: 1.7, maxWidth: '360px', margin: '0 auto' }}>
             Complete payroll management system. Manage employees, track attendance, and generate payslips effortlessly.
           </p>
@@ -89,7 +89,7 @@ export default function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold" style={{ color: '#1a1d3b' }}>HRIS</h1>
+            <h1 className="text-2xl font-bold" style={{ color: '#1a1d3b' }}>HRMS</h1>
           </div>
 
           <div className="keka-card p-8">
@@ -190,7 +190,7 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-xs mt-6" style={{ color: '#9ca3af' }}>
-            HRIS Payroll Management System &copy; {new Date().getFullYear()}
+            HRMS Payroll Management System &copy; {new Date().getFullYear()}
           </p>
         </div>
       </div>

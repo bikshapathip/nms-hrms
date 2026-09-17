@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import SearchableSelect from "@/components/SearchableSelect";
 import SweetAlert, { showDeleteConfirm, showSuccessDelete, showError, showLoading } from "@/components/common/SweetAlert";
+import NoResults from "@/components/common/NoResults";
 
 export default function SalaryTemplatesPage() {
   const [templates, setTemplates] = useState([]);
@@ -113,6 +114,17 @@ export default function SalaryTemplatesPage() {
   const noResultsMessage = search
     ? `No salary templates found for "${search}"`
     : (clientFilter || stateFilter || cityFilter || locationFilter) ? "No templates match the selected filters" : "No salary templates added yet";
+  const hasActiveFilters = !!(search || clientFilter || stateFilter || cityFilter || locationFilter);
+
+  function clearFilters() {
+    setSearchInput("");
+    setSearch("");
+    setClientFilter("");
+    setStateFilter("");
+    setCityFilter("");
+    setLocationFilter("");
+    setPage(1);
+  }
 
   return (
     <div>
@@ -198,12 +210,12 @@ export default function SalaryTemplatesPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px]">
               <thead><tr style={{ background: 'var(--bg-header)', borderBottom: '1px solid var(--border-color)' }}>
-                {[...Array(7)].map((_, i) => <th key={i} className="text-left px-5 py-3"><div className="h-3 w-24 rounded bg-gray-200 animate-pulse"></div></th>)}
+                {[...Array(7)].map((_, i) => <th key={i} className="text-left px-5 py-3"><div className="h-3 w-24 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div></th>)}
               </tr></thead>
               <tbody>
                 {[...Array(perPage || 10)].map((_, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                    {[...Array(7)].map((_, j) => <td key={j} className="px-5 py-4"><div className="h-3.5 w-24 rounded bg-gray-200 animate-pulse"></div></td>)}
+                    {[...Array(7)].map((_, j) => <td key={j} className="px-5 py-4"><div className="h-3.5 w-24 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div></td>)}
                   </tr>
                 ))}
               </tbody>
@@ -227,7 +239,7 @@ export default function SalaryTemplatesPage() {
                 </thead>
                 <tbody>
                   {templates.length === 0 ? (
-                    <tr><td colSpan={8} className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>{noResultsMessage}</td></tr>
+                    <tr><td colSpan={8}><NoResults message={noResultsMessage} onClear={hasActiveFilters ? clearFilters : undefined} /></td></tr>
                   ) : templates.map((t) => (
                     <tr key={t._id} className="transition" style={{ borderBottom: '1px solid var(--border-light)' }}>
                       <td className="px-5 py-4 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t.name}</td>
@@ -239,18 +251,27 @@ export default function SalaryTemplatesPage() {
                       <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-on-card)' }}>{t.gender}</td>
                       <td className="px-5 py-4 text-sm font-mono text-right" style={{ color: 'var(--text-on-card)' }}>₹{Number(t.basicSalary || 0).toLocaleString("en-IN")}</td>
                       <td className="px-5 py-4 text-center">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: t.isActive ? '#ecfdf5' : '#fef2f2', color: t.isActive ? '#059669' : '#dc2626' }}>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium status-badge ${t.isActive ? 'is-active' : 'is-inactive'}`}>
                           <span className="w-1.5 h-1.5 rounded-full" style={{ background: t.isActive ? '#10b981' : '#ef4444' }}></span>
                           {t.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Link href={`/salary-templates/${t._id}`} className="p-2 rounded-lg transition hover:bg-indigo-50" title="Edit">
-                            <svg className="w-4 h-4" style={{ color: '#6366f1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        <div className="flex items-center justify-end gap-2">
+                          <Link href={`/salary-templates/${t._id}/view`} className="action-icon-btn" aria-label="View" style={{ '--tt-bg': '#e0f2fe', '--tt-fg': '#0284c7' }}>
+                            <svg className="w-4 h-4" style={{ color: '#0284c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="action-tooltip">View</span>
                           </Link>
-                          <button onClick={() => handleDelete(t._id, t.name)} className="p-2 rounded-lg transition hover:bg-red-50" title="Delete">
-                            <svg className="w-4 h-4" style={{ color: '#ef4444' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          <Link href={`/salary-templates/${t._id}`} className="action-icon-btn" aria-label="Edit" style={{ '--tt-bg': '#e0e7ff', '--tt-fg': '#6366f1' }}>
+                            <svg className="w-4 h-4" style={{ color: '#6366f1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            <span className="action-tooltip">Edit</span>
+                          </Link>
+                          <button onClick={() => handleDelete(t._id, t.name)} className="action-icon-btn" aria-label="Delete" style={{ '--tt-bg': '#fee2e2', '--tt-fg': '#ef4444' }}>
+                            <svg className="w-4 h-4" style={{ color: '#ef4444' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            <span className="action-tooltip">Delete</span>
                           </button>
                         </div>
                       </td>
@@ -262,7 +283,7 @@ export default function SalaryTemplatesPage() {
 
             <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-light)' }}>
               {templates.length === 0 ? (
-                <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>{noResultsMessage}</div>
+                <NoResults message={noResultsMessage} onClear={hasActiveFilters ? clearFilters : undefined} />
               ) : templates.map((t) => (
                 <div key={t._id} className="p-4" style={{ borderColor: 'var(--border-light)' }}>
                   <div className="flex items-start justify-between mb-2">
@@ -270,7 +291,7 @@ export default function SalaryTemplatesPage() {
                       <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t.name}</p>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{t.client?.clientName || "—"} · {t.role}</p>
                     </div>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: t.isActive ? '#ecfdf5' : '#fef2f2', color: t.isActive ? '#059669' : '#dc2626' }}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium status-badge ${t.isActive ? 'is-active' : 'is-inactive'}`}>
                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: t.isActive ? '#10b981' : '#ef4444' }}></span>
                       {t.isActive ? "Active" : "Inactive"}
                     </span>
@@ -280,6 +301,7 @@ export default function SalaryTemplatesPage() {
                     <div><span style={{ color: 'var(--text-muted)' }}>Basic: </span><span className="font-mono" style={{ color: 'var(--text-on-card)' }}>₹{Number(t.basicSalary || 0).toLocaleString("en-IN")}</span></div>
                   </div>
                   <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-light)' }}>
+                    <Link href={`/salary-templates/${t._id}/view`} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#e0f2fe', color: '#0284c7' }}>View</Link>
                     <Link href={`/salary-templates/${t._id}`} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#eef2ff', color: '#6366f1' }}>Edit</Link>
                     <button onClick={() => handleDelete(t._id, t.name)} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#fef2f2', color: '#ef4444' }}>Delete</button>
                   </div>
@@ -293,15 +315,15 @@ export default function SalaryTemplatesPage() {
                   Showing <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{startRecord}</span> to <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{endRecord}</span> of <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{total}</span> templates
                 </p>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setPage(1)} disabled={page === 1} className="p-2 rounded-lg text-xs disabled:opacity-30 disabled:cursor-not-allowed transition hover:bg-gray-100" style={{ color: 'var(--text-secondary)' }}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg></button>
-                  <button onClick={() => setPage(page - 1)} disabled={page === 1} className="px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition hover:bg-gray-100" style={{ color: 'var(--text-secondary)' }}>Prev</button>
+                  <button onClick={() => setPage(1)} disabled={page === 1} className="p-2 rounded-lg text-xs disabled:opacity-30 disabled:cursor-not-allowed transition hover-surface" style={{ color: 'var(--text-pagination)' }}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg></button>
+                  <button onClick={() => setPage(page - 1)} disabled={page === 1} className="px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition hover-surface" style={{ color: 'var(--text-pagination)' }}>Prev</button>
                   {getPageNumbers()[0] > 1 && <span className="px-1 text-xs" style={{ color: 'var(--text-muted)' }}>...</span>}
                   {getPageNumbers().map((p) => (
-                    <button key={p} onClick={() => setPage(p)} className="w-9 h-9 rounded-lg text-sm font-semibold transition" style={{ background: p === page ? '#6366f1' : 'transparent', color: p === page ? '#fff' : 'var(--text-secondary)' }}>{p}</button>
+                    <button key={p} onClick={() => setPage(p)} className="w-9 h-9 rounded-lg text-sm font-semibold transition" style={{ background: p === page ? '#6366f1' : 'transparent', color: p === page ? '#fff' : 'var(--text-pagination)' }}>{p}</button>
                   ))}
                   {getPageNumbers()[getPageNumbers().length - 1] < totalPages && <span className="px-1 text-xs" style={{ color: 'var(--text-muted)' }}>...</span>}
-                  <button onClick={() => setPage(page + 1)} disabled={page === totalPages} className="px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition hover:bg-gray-100" style={{ color: 'var(--text-secondary)' }}>Next</button>
-                  <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className="p-2 rounded-lg text-xs disabled:opacity-30 disabled:cursor-not-allowed transition hover:bg-gray-100" style={{ color: 'var(--text-secondary)' }}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg></button>
+                  <button onClick={() => setPage(page + 1)} disabled={page === totalPages} className="px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition hover-surface" style={{ color: 'var(--text-pagination)' }}>Next</button>
+                  <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className="p-2 rounded-lg text-xs disabled:opacity-30 disabled:cursor-not-allowed transition hover-surface" style={{ color: 'var(--text-pagination)' }}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg></button>
                 </div>
               </div>
             )}

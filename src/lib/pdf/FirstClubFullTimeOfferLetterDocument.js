@@ -11,10 +11,15 @@ function fmtDate(date) {
 function fmt(n) {
   return (n || 0).toLocaleString("en-IN");
 }
+function maxFlatSlab(slabs) {
+  if (!Array.isArray(slabs) || !slabs.length) return 0;
+  return slabs.reduce((max, s) => (s.type === "Flat" && Number(s.value) > max ? Number(s.value) : max), 0);
+}
 
 const CO = "Nilkanta";
+const PF_WAGE_CEILING = 15000;
 
-export function SolaraOfferLetterDocument({ employee: emp, client }) {
+export function FirstClubFullTimeOfferLetterDocument({ employee: emp, client }) {
   const name = `${emp.firstName || ""} ${emp.lastName || ""}`.trim();
   const address = [emp.address, emp.city].filter(Boolean).join(", ") || "___________";
   const doj = fmtDate(emp.dateOfJoining);
@@ -24,31 +29,37 @@ export function SolaraOfferLetterDocument({ employee: emp, client }) {
   const empCode = emp.employeeId || "___________";
   const stamp = getStampBase64();
 
-  const b = emp.basicSalary || 0, h = emp.hra || 0, d = emp.da || 0, oa = emp.otherAllowance || 0;
-  const gross = b + h + d + oa;
-  const epfE = emp.pfEnabled ? Math.round(b * 0.12) : 0;
+  const basicVda = (emp.basicSalary || 0) + (emp.da || 0);
+  const hra = emp.hra || 0;
+  const statutoryBonus = emp.statutoryBonus || 0;
+  const gross = basicVda + hra + statutoryBonus;
+  const pfWage = Math.min(basicVda, PF_WAGE_CEILING);
+  const epfE = emp.pfEnabled ? Math.round(pfWage * 0.12) : 0;
   const esicE = emp.esiEnabled && gross <= 21000 ? Math.round(gross * 0.0075) : 0;
   const pt = emp.professionalTax || 0;
-  const totDed = epfE + esicE + pt;
-  const net = gross - totDed;
-  const epfR = emp.pfEnabled ? Math.round(b * 0.12) : 0;
+  const net = gross - epfE - esicE - pt;
+  const epfR = emp.pfEnabled ? Math.round(pfWage * 0.13) : 0;
   const esicR = emp.esiEnabled && gross <= 21000 ? Math.round(gross * 0.0325) : 0;
-  const ctc = gross + epfR + esicR;
+  const attendanceIncentive = maxFlatSlab(emp.attendanceBonusSlabs);
+  const lwf = emp.lwf || 0;
+  const insurance = 0;
+  const ctc = gross + epfR + esicR + lwf + insurance;
 
   const rows = [
-    { label: "Basic", value: fmt(b) },
-    { label: "HRA", value: fmt(h) },
-    { label: "DA / Dearness Allowance", value: fmt(d) },
-    { label: "Other Allowance", value: fmt(oa) },
+    { label: "Basic+VDA", value: fmt(basicVda) },
+    { label: "HRA", value: fmt(hra) },
+    { label: "Statutory Bonus", value: fmt(statutoryBonus) },
     { label: "Gross Salary (A)", value: fmt(gross), bold: true, variant: "green" },
-    { label: "EPF Contribution [Employee] (12%)", value: fmt(epfE) },
+    { label: "EPF Contribution [Employee]", value: fmt(epfE) },
     { label: "ESIC Contribution [Employee] (0.75%)", value: fmt(esicE) },
     { label: "Professional Tax", value: fmt(pt) },
-    { label: "Total Deduction (B)", value: fmt(totDed), bold: true, variant: "yellow" },
-    { label: "Net Take Home Salary (A - B)", value: fmt(net), bold: true, variant: "blue" },
-    { label: "EPF Contribution [Employer] (12%)", value: fmt(epfR) },
+    { label: "Net Take Home Salary", value: fmt(net), bold: true, variant: "blue" },
+    { label: "EPF Contribution [Employer] (13%)", value: fmt(epfR) },
     { label: "ESIC Contribution [Employer] (3.25%)", value: fmt(esicR) },
-    { label: "CTC", value: fmt(ctc), bold: true, variant: "green" },
+    { label: "Attendance Incentive (Pro Rated)", value: fmt(attendanceIncentive) },
+    { label: "LWF", value: fmt(lwf) },
+    { label: "Insurance", value: fmt(insurance) },
+    { label: "Fixed CTC", value: fmt(ctc), bold: true, variant: "green" },
   ];
 
   return (

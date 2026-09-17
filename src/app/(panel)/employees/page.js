@@ -5,6 +5,8 @@ import Link from "next/link";
 import FullPageLoader from "@/components/FullPageLoader";
 import SearchableSelect from "@/components/SearchableSelect";
 import SweetAlert, { showDeleteConfirm, showSuccessDelete, showError, showLoading } from "@/components/common/SweetAlert";
+import Toast from "@/components/common/Toast";
+import NoResults from "@/components/common/NoResults";
 
 function uniqueValues(clients, clientId, extra = {}) {
   const pool = clientId ? clients.filter((c) => c._id === clientId) : clients;
@@ -20,6 +22,8 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [toast, setToast] = useState(null);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [clients, setClients] = useState([]);
@@ -40,6 +44,16 @@ export default function EmployeesPage() {
 
   const availableStates = uniqueValues(clients, clientFilter, { field: "state" });
   const availableCities = uniqueValues(clients, clientFilter, { field: "city", state: stateFilter });
+
+  function clearFilters() {
+    setSearchInput("");
+    setSearch("");
+    setClientFilter("");
+    setStateFilter("");
+    setCityFilter("");
+    setLocationFilter("");
+    setPage(1);
+  }
   const availableLocations = uniqueValues(clients, clientFilter, { field: "location", state: stateFilter, city: cityFilter });
 
   const fetchEmployees = useCallback(async () => {
@@ -74,6 +88,31 @@ export default function EmployeesPage() {
     }, 400);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({ sortField, sortOrder });
+      if (search) params.set("search", search);
+      if (clientFilter) params.set("client", clientFilter);
+      if (stateFilter) params.set("state", stateFilter);
+      if (cityFilter) params.set("city", cityFilter);
+      if (locationFilter) params.set("location", locationFilter);
+      const res = await fetch(`/api/employees/export?${params}`);
+      if (!res.ok) throw new Error("Failed to export employees");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || "employees.xlsx";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setAlertConfig(showError(err.message || "Failed to export employees", () => setAlertConfig(null)));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function performDelete(id) {
     try {
@@ -141,6 +180,7 @@ export default function EmployeesPage() {
   return (
     <div>
       {downloading && <FullPageLoader text="Downloading Offer Letter..." />}
+      <Toast isOpen={!!toast} type={toast?.type} message={toast?.message} onClose={() => setToast(null)} />
       {alertConfig && (
         <SweetAlert
           isOpen={!!alertConfig}
@@ -164,6 +204,23 @@ export default function EmployeesPage() {
           <p className="text-xs mt-0.5" style={{ color: '#9ca0c7' }}>{total} total employees</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="btn-success px-4 sm:px-5 py-2 rounded-full text-sm font-semibold flex items-center gap-2 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {exporting ? (
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            )}
+            {exporting ? "Exporting..." : "Export"}
+          </button>
           <Link href="/employees/new" className="btn-primary px-4 sm:px-5 py-2 rounded-full text-sm font-semibold flex items-center gap-2 shadow-lg">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -250,37 +307,42 @@ export default function EmployeesPage() {
 
           {loading ? (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px]">
+              <table className="w-full min-w-[1450px]">
                 <thead>
                     <tr style={{ background: 'var(--bg-header)', borderBottom: '1px solid var(--border-color)' }}>
+                    <th className="text-left px-5 py-3" style={{ position: 'sticky', left: 0, willChange: 'transform', zIndex: 2, background: 'var(--bg-header)', borderRight: '2px solid rgba(148, 163, 184, 0.6)' }}><div className="h-3 w-20 rounded" style={{ background: 'var(--border-color)' }}></div></th>
+                    <th className="text-left px-5 py-3"><div className="h-3 w-20 rounded" style={{ background: 'var(--border-color)' }}></div></th>
+                    <th className="text-left px-5 py-3"><div className="h-3 w-20 rounded" style={{ background: 'var(--border-color)' }}></div></th>
+                    <th className="text-left px-5 py-3"><div className="h-3 w-16 rounded" style={{ background: 'var(--border-color)' }}></div></th>
+                    <th className="text-left px-5 py-3"><div className="h-3 w-24 rounded" style={{ background: 'var(--border-color)' }}></div></th>
                     <th className="text-left px-5 py-3"><div className="h-3 w-20 rounded" style={{ background: 'var(--border-color)' }}></div></th>
                     <th className="text-left px-5 py-3"><div className="h-3 w-20 rounded" style={{ background: 'var(--border-color)' }}></div></th>
                     <th className="text-left px-5 py-3"><div className="h-3 w-20 rounded" style={{ background: 'var(--border-color)' }}></div></th>
-                    <th className="text-right px-5 py-3"><div className="h-3 w-16 rounded ml-auto" style={{ background: 'var(--border-color)' }}></div></th>
-                    <th className="text-center px-5 py-3"><div className="h-3 w-14 rounded mx-auto" style={{ background: 'var(--border-color)' }}></div></th>
-                    <th className="text-right px-5 py-3"><div className="h-3 w-14 rounded ml-auto" style={{ background: 'var(--border-color)' }}></div></th>
+                    <th className="text-center px-5 py-3" style={{ position: 'sticky', right: 0, willChange: 'transform', zIndex: 2, background: 'var(--bg-header)', borderLeft: '2px solid rgba(148, 163, 184, 0.6)', minWidth: 260 }}><div className="h-3 w-14 rounded mx-auto" style={{ background: 'var(--border-color)' }}></div></th>
                   </tr>
                 </thead>
                 <tbody>
                   {[...Array(perPage || 10)].map((_, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-4" style={{ position: 'sticky', left: 0, willChange: 'transform', zIndex: 1, background: 'var(--bg-card)', borderRight: '2px solid rgba(148, 163, 184, 0.6)' }}>
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-gray-200 animate-pulse"></div>
+                          <div className="w-9 h-9 rounded-full bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div>
                           <div className="space-y-2">
-                            <div className="h-3.5 w-28 rounded bg-gray-200 animate-pulse"></div>
-                            <div className="h-2.5 w-16 rounded bg-gray-100 animate-pulse"></div>
+                            <div className="h-3.5 w-28 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div>
+                            <div className="h-2.5 w-16 rounded bg-gray-100 animate-pulse" style={{ background: 'var(--border-light)' }}></div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4"><div className="h-3.5 w-24 rounded bg-gray-200 animate-pulse"></div></td>
-                      <td className="px-5 py-4"><div className="h-3.5 w-20 rounded bg-gray-200 animate-pulse"></div></td>
-                      <td className="px-5 py-4"><div className="h-3.5 w-16 rounded bg-gray-200 animate-pulse ml-auto"></div></td>
-                      <td className="px-5 py-4"><div className="h-5 w-14 rounded-full bg-gray-200 animate-pulse mx-auto"></div></td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="w-7 h-7 rounded bg-gray-200 animate-pulse"></div>
-                          <div className="w-7 h-7 rounded bg-gray-200 animate-pulse"></div>
+                      <td className="px-5 py-4"><div className="h-3.5 w-24 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div></td>
+                      <td className="px-5 py-4"><div className="h-3.5 w-20 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div></td>
+                      <td className="px-5 py-4"><div className="h-3.5 w-16 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div></td>
+                      <td className="px-5 py-4"><div className="h-3.5 w-24 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div></td>
+                      <td className="px-5 py-4"><div className="h-3.5 w-20 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div></td>
+                      <td className="px-5 py-4"><div className="h-3.5 w-20 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div></td>
+                      <td className="px-5 py-4"><div className="h-3.5 w-20 rounded bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div></td>
+                      <td className="px-5 py-4" style={{ position: 'sticky', right: 0, willChange: 'transform', zIndex: 5, background: 'var(--bg-card)', borderLeft: '2px solid rgba(148, 163, 184, 0.6)', minWidth: 260 }}>
+                        <div className="flex items-center justify-center gap-2">
+                          {[...Array(5)].map((_, k) => <div key={k} className="w-7 h-7 rounded-lg bg-gray-200 animate-pulse" style={{ background: 'var(--border-color)' }}></div>)}
                         </div>
                       </td>
                     </tr>
@@ -291,39 +353,50 @@ export default function EmployeesPage() {
           ) : (
             <>
               <div className="overflow-x-auto hidden md:block">
-                <table className="w-full min-w-[800px]">
+                <table className="w-full min-w-[1450px]">
                   <thead>
                     <tr style={{ background: 'var(--bg-header)', borderBottom: '1px solid var(--border-color)' }}>
-                      <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition" style={{ color: 'var(--text-secondary)' }} onClick={() => handleSort("name")}>
+                      <th
+                        className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition"
+                        style={{ color: 'var(--text-secondary)', position: 'sticky', left: 0, willChange: 'transform', zIndex: 2, background: 'var(--bg-header)', borderRight: '2px solid rgba(148, 163, 184, 0.6)' }}
+                        onClick={() => handleSort("name")}
+                      >
                         <span className="inline-flex items-center">Employee<SortIcon field="name" /></span>
                       </th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Client</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Location</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Gender</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Email</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Phone</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Date of Joining</th>
                       <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition" style={{ color: 'var(--text-secondary)' }} onClick={() => handleSort("designation")}>
                         <span className="inline-flex items-center">Designation<SortIcon field="designation" /></span>
                       </th>
-                      <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition" style={{ color: 'var(--text-secondary)' }} onClick={() => handleSort("basicSalary")}>
-                        <span className="inline-flex items-center justify-end">Gross Salary<SortIcon field="basicSalary" /></span>
+                      <th
+                        className="text-center px-5 py-3 text-xs font-semibold uppercase tracking-wider"
+                        style={{ color: 'var(--text-secondary)', position: 'sticky', right: 0, willChange: 'transform', zIndex: 2, background: 'var(--bg-header)', borderLeft: '2px solid rgba(148, 163, 184, 0.6)', minWidth: 260 }}
+                      >
+                        Actions
                       </th>
-                      <th className="text-center px-5 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition" style={{ color: 'var(--text-secondary)' }} onClick={() => handleSort("isActive")}>
-                        <span className="inline-flex items-center justify-center">Status<SortIcon field="isActive" /></span>
-                      </th>
-                      <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {employees.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
-                          {search ? <>No employees found for &quot;{search}&quot;</> : "No employees match the selected filters"}
+                        <td colSpan={9}>
+                          <NoResults
+                            message={search ? `No employees found for "${search}"` : "No employees match the selected filters"}
+                            onClear={clearFilters}
+                          />
                         </td>
                       </tr>
                     ) : employees.map((emp, i) => {
-                      const gross = emp.basicSalary + emp.hra + emp.da + emp.otherAllowance;
                       const initials = emp.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                       const colors = ['#6366f1', '#10b981', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6'];
                       const avatarColor = colors[((page - 1) * perPage + i) % colors.length];
                       return (
                         <tr key={emp._id} className="transition" style={{ borderBottom: '1px solid var(--border-light)' }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-card-hover)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-4" style={{ position: 'sticky', left: 0, willChange: 'transform', zIndex: 1, background: 'var(--bg-card)', borderRight: '2px solid rgba(148, 163, 184, 0.6)' }}>
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: avatarColor }}>
                                 {initials}
@@ -334,33 +407,39 @@ export default function EmployeesPage() {
                               </div>
                             </div>
                           </td>
+                          <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-on-card)' }}>{emp.client?.clientName || "—"}</td>
+                          <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-on-card)' }}>{emp.clientLocation || "—"}</td>
+                          <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-on-card)' }}>{emp.gender || "—"}</td>
+                          <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-on-card)' }}>{emp.email || "—"}</td>
+                          <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-on-card)' }}>{emp.contactNumber || "—"}</td>
+                          <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-on-card)' }}>{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</td>
                           <td className="px-5 py-4 text-sm" style={{ color: 'var(--text-on-card)' }}>{emp.designation}</td>
-                          <td className="px-5 py-4 text-sm text-right font-medium" style={{ color: 'var(--text-primary)' }}>₹{gross.toLocaleString("en-IN")}</td>
-                          <td className="px-5 py-4 text-center">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium" style={{
-                              background: emp.isActive ? '#ecfdf5' : '#fef2f2',
-                              color: emp.isActive ? '#059669' : '#dc2626',
-                            }}>
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ background: emp.isActive ? '#10b981' : '#ef4444' }}></span>
-                              {emp.isActive ? "Active" : "Inactive"}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Link href={`/employees/${emp._id}`} className="p-2 rounded-lg transition hover:bg-indigo-50" title="Edit">
+                          <td className="px-5 py-4 text-center" style={{ position: 'sticky', right: 0, willChange: 'transform', zIndex: 5, background: 'var(--bg-card)', borderLeft: '2px solid rgba(148, 163, 184, 0.6)', minWidth: 260 }}>
+                            <div className="flex items-center justify-center gap-2">
+                              <Link href={`/employees/${emp._id}/view`} className="action-icon-btn" aria-label="View" style={{ '--tt-bg': '#e0f2fe', '--tt-fg': '#0284c7' }}>
+                                <svg className="w-4 h-4" style={{ color: '#0284c7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span className="action-tooltip">View</span>
+                              </Link>
+                              <Link href={`/employees/${emp._id}`} className="action-icon-btn" aria-label="Edit" style={{ '--tt-bg': '#e0e7ff', '--tt-fg': '#6366f1' }}>
                                 <svg className="w-4 h-4" style={{ color: '#6366f1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
+                                <span className="action-tooltip">Edit</span>
                               </Link>
-                              <Link href={`/employees/${emp._id}/payroll`} className="p-2 rounded-lg transition hover:bg-emerald-50" title="View Payroll">
-                                <svg className="w-4 h-4" style={{ color: '#10b981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+                              <Link href={`/employees/${emp._id}/payroll`} className="action-icon-btn" aria-label="View Payroll" style={{ '--tt-bg': '#fef3c7', '--tt-fg': '#b45309' }}>
+                                <svg className="w-4 h-4" style={{ color: '#f59e0b' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
                                 </svg>
+                                <span className="action-tooltip">View Payroll</span>
                               </Link>
-                              <button onClick={() => handleDelete(emp._id, emp.name)} className="p-2 rounded-lg transition hover:bg-red-50" title="Delete">
+                              <button onClick={() => handleDelete(emp._id, emp.name)} className="action-icon-btn" aria-label="Delete" style={{ '--tt-bg': '#fee2e2', '--tt-fg': '#ef4444' }}>
                                 <svg className="w-4 h-4" style={{ color: '#ef4444' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
+                                <span className="action-tooltip">Delete</span>
                               </button>
                               <button
                                 onClick={async () => {
@@ -375,14 +454,18 @@ export default function EmployeesPage() {
                                       a.download = res.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || "offer-letter.pdf";
                                       a.click();
                                       URL.revokeObjectURL(url);
+                                      setToast({ type: "success", message: "Offer letter downloaded successfully!" });
+                                    } else {
+                                      setToast({ type: "error", message: "Failed to download offer letter." });
                                     }
                                   } finally { setDownloading(false); }
                                 }}
-                                className="p-2 rounded-lg transition hover:bg-green-50" title="Download Offer Letter"
+                                className="action-icon-btn" aria-label="Download Offer Letter" style={{ '--tt-bg': '#dcfce7', '--tt-fg': '#16a34a' }}
                               >
-                                <svg className="w-4 h-4" style={{ color: '#10b981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                <svg className="w-4 h-4" style={{ color: '#16a34a' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
+                                <span className="action-tooltip">Download Offer Letter</span>
                               </button>
                             </div>
                           </td>
@@ -396,9 +479,10 @@ export default function EmployeesPage() {
               {/* Mobile Cards */}
               <div className="md:hidden divide-y" style={{ borderColor: 'var(--border-light)' }}>
                 {employees.length === 0 ? (
-                  <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
-                    {search ? <>No employees found for &quot;{search}&quot;</> : "No employees match the selected filters"}
-                  </div>
+                  <NoResults
+                    message={search ? `No employees found for "${search}"` : "No employees match the selected filters"}
+                    onClear={clearFilters}
+                  />
                 ) : employees.map((emp, i) => {
                   const gross = emp.basicSalary + emp.hra + emp.da + emp.otherAllowance;
                   const initials = emp.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -412,16 +496,23 @@ export default function EmployeesPage() {
                           <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{emp.name}</p>
                           <p className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{emp.employeeId}</p>
                         </div>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0" style={{ background: emp.isActive ? '#ecfdf5' : '#fef2f2', color: emp.isActive ? '#059669' : '#dc2626' }}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 status-badge ${emp.isActive ? 'is-active' : 'is-inactive'}`}>
                           <span className="w-1.5 h-1.5 rounded-full" style={{ background: emp.isActive ? '#10b981' : '#ef4444' }}></span>
                           {emp.isActive ? "Active" : "Inactive"}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div><span style={{ color: 'var(--text-muted)' }}>Designation: </span><span style={{ color: 'var(--text-on-card)' }}>{emp.designation}</span></div>
+                        <div><span style={{ color: 'var(--text-muted)' }}>Gender: </span><span style={{ color: 'var(--text-on-card)' }}>{emp.gender || "—"}</span></div>
+                        <div><span style={{ color: 'var(--text-muted)' }}>Client: </span><span style={{ color: 'var(--text-on-card)' }}>{emp.client?.clientName || "—"}</span></div>
+                        <div><span style={{ color: 'var(--text-muted)' }}>Location: </span><span style={{ color: 'var(--text-on-card)' }}>{emp.clientLocation || "—"}</span></div>
+                        <div className="col-span-2"><span style={{ color: 'var(--text-muted)' }}>Email: </span><span style={{ color: 'var(--text-on-card)' }}>{emp.email || "—"}</span></div>
+                        <div><span style={{ color: 'var(--text-muted)' }}>Phone: </span><span style={{ color: 'var(--text-on-card)' }}>{emp.contactNumber || "—"}</span></div>
+                        <div><span style={{ color: 'var(--text-muted)' }}>Joined: </span><span style={{ color: 'var(--text-on-card)' }}>{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</span></div>
                         <div className="col-span-2"><span style={{ color: 'var(--text-muted)' }}>Gross Salary: </span><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>₹{gross.toLocaleString("en-IN")}</span></div>
                       </div>
                       <div className="flex items-center gap-2 mt-3 pt-3 flex-wrap" style={{ borderTop: '1px solid var(--border-light)' }}>
+                        <Link href={`/employees/${emp._id}/view`} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#e0f2fe', color: '#0284c7' }}>View</Link>
                         <Link href={`/employees/${emp._id}`} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#eef2ff', color: '#6366f1' }}>Edit</Link>
                         <Link href={`/employees/${emp._id}/payroll`} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#ecfdf5', color: '#10b981' }}>Payroll</Link>
                         <button onClick={() => handleDelete(emp._id, emp.name)} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#fef2f2', color: '#ef4444' }}>Delete</button>
@@ -429,7 +520,12 @@ export default function EmployeesPage() {
                           setDownloading(true);
                           try {
                             const res = await fetch(`/api/employees/${emp._id}/offer-letter`);
-                            if (res.ok) { const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "offer-letter.pdf"; a.click(); URL.revokeObjectURL(url); }
+                            if (res.ok) {
+                              const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "offer-letter.pdf"; a.click(); URL.revokeObjectURL(url);
+                              setToast({ type: "success", message: "Offer letter downloaded successfully!" });
+                            } else {
+                              setToast({ type: "error", message: "Failed to download offer letter." });
+                            }
                           } finally { setDownloading(false); }
                         }} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ background: '#ecfdf5', color: '#059669' }}>Offer Letter</button>
                       </div>
@@ -451,7 +547,7 @@ export default function EmployeesPage() {
                     onClick={() => setPage(1)}
                     disabled={page === 1}
                     className="p-2 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition"
-                    style={{ color: 'var(--text-secondary)' }}
+                    style={{ color: 'var(--text-pagination)' }}
                     title="First page"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
@@ -462,7 +558,7 @@ export default function EmployeesPage() {
                     onClick={() => setPage(page - 1)}
                     disabled={page === 1}
                     className="px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition"
-                    style={{ color: 'var(--text-secondary)' }}
+                    style={{ color: 'var(--text-pagination)' }}
                   >
                     Prev
                   </button>
@@ -478,7 +574,7 @@ export default function EmployeesPage() {
                       className="w-9 h-9 rounded-lg text-sm font-semibold transition"
                       style={{
                         background: p === page ? 'var(--primary)' : 'transparent',
-                        color: p === page ? '#ffffff' : 'var(--text-secondary)',
+                        color: p === page ? '#ffffff' : 'var(--text-pagination)',
                       }}
                       onMouseEnter={(e) => { if (p !== page) e.target.style.background = 'var(--bg-card-hover)'; }}
                       onMouseLeave={(e) => { if (p !== page) e.target.style.background = 'transparent'; }}
@@ -495,7 +591,7 @@ export default function EmployeesPage() {
                     onClick={() => setPage(page + 1)}
                     disabled={page === totalPages || totalPages === 0}
                     className="px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition"
-                    style={{ color: 'var(--text-secondary)' }}
+                    style={{ color: 'var(--text-pagination)' }}
                   >
                     Next
                   </button>
@@ -505,7 +601,7 @@ export default function EmployeesPage() {
                     onClick={() => setPage(totalPages)}
                     disabled={page === totalPages || totalPages === 0}
                     className="p-2 rounded-lg text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition"
-                    style={{ color: 'var(--text-secondary)' }}
+                    style={{ color: 'var(--text-pagination)' }}
                     title="Last page"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>

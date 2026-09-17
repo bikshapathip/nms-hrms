@@ -42,6 +42,7 @@ const VARIANT_BG = {
 };
 
 export function SalaryTable({ title, columnHeaders, rows }) {
+  const hasYearly = columnHeaders && columnHeaders.length > 2;
   return (
     <View style={s.wrap}>
       <View style={s.table}>
@@ -54,6 +55,7 @@ export function SalaryTable({ title, columnHeaders, rows }) {
           <View style={s.row}>
             <Text style={[s.headerCell, { flex: 2 }]}>{columnHeaders[0]}</Text>
             <Text style={[s.headerCell, { flex: 1 }]}>{columnHeaders[1]}</Text>
+            {hasYearly ? <Text style={[s.headerCell, { flex: 1 }]}>{columnHeaders[2]}</Text> : null}
           </View>
         ) : null}
         {rows.map((r, i) => {
@@ -68,6 +70,13 @@ export function SalaryTable({ title, columnHeaders, rows }) {
               >
                 {r.value}
               </Text>
+              {hasYearly ? (
+                <Text
+                  style={[s.cell, s.valueCell, { flex: 1 }, bg && { backgroundColor: bg }, r.bold && s.bold]}
+                >
+                  {r.yearly}
+                </Text>
+              ) : null}
             </View>
           );
         })}

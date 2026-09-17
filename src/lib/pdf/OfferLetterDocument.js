@@ -57,10 +57,10 @@ export function OfferLetterDocument({ employee: emp, client }) {
         </Text>
         <Text style={{ textAlign: "right", fontFamily: "Times-Bold", marginBottom: 8 }}>Date: {doj}</Text>
 
-        <Text style={{ marginBottom: 12 }}><B>Employee Code:</B> {empCode}</Text>
+        <Text style={{ marginBottom: 12 }}><B>Employee Code:</B> <B>{empCode}</B></Text>
         <Text style={{ marginBottom: 4 }}><B>Name:</B> {name}</Text>
         <Text style={{ marginBottom: 12 }}><B>Address:</B> {address}</Text>
-        <Text style={{ fontFamily: "Times-Bold", textDecoration: "underline", marginBottom: 12 }}>Dear : {name}</Text>
+        <Text style={{ fontFamily: "Times-Bold", marginBottom: 12 }}>Dear {name}</Text>
         <Text style={{ textAlign: "justify", marginBottom: 12 }}>
           We are pleased to appoint you in our organization as <B>{desig}</B> subject to the following terms and conditions:
         </Text>
@@ -83,16 +83,16 @@ export function OfferLetterDocument({ employee: emp, client }) {
             performance shall not be inconsistent with any obligation you may have to other third parties.
           </RomanItem>
           <RomanItem index={3}>
-            Not engage in any conduct which is detrimental to the interest of the {CL} or <U>{CO}</U> Management
+            Not engage in any conduct which is detrimental to the interest of the {CL} or {CO} Management
             Services Private Limited.
           </RomanItem>
           <RomanItem index={4}>
             Not receive any payments of any nature directly or indirectly from the {CL} unless agreed to by{" "}
-            <U>{CO}</U> Management Services Private Limited.
+            {CO} Management Services Private Limited.
           </RomanItem>
           <RomanItem index={5}>
             Neither directly nor indirectly offers you employment with our client {CL} or its affiliates during the
-            period of the work assignment without prior permission of the vendor <U>{CO}</U> Management Services
+            period of the work assignment without prior permission of the vendor {CO} Management Services
             Private Limited.
           </RomanItem>
           <RomanItem index={6}>
@@ -105,18 +105,18 @@ export function OfferLetterDocument({ employee: emp, client }) {
             by the rules and regulations as required by our client the {CO} Management Services Private Limited.
           </RomanItem>
           <RomanItem index={8}>
-            Comply with the safety, health and other rules and regulations of <U>{CO}</U> Management Services
+            Comply with the safety, health and other rules and regulations of {CO} Management Services
             Private Limited and our client {CL} that you have been made aware of.
           </RomanItem>
           <RomanItem index={9}>
             During the course of your contract, you can be transferred to a location within the territory of India
-            as and when required by <U>{CO}</U> Management Services Private Limited for executing the services.
+            as and when required by {CO} Management Services Private Limited for executing the services.
           </RomanItem>
         </View>
 
         <NumberedItem index={3}>
           Should you be selected to perform the Work Assignment, the nature of your relationship with the{" "}
-          <U>{CO}</U> Management Services Private Limited will be that of a Contract of Service for a fixed period.
+          {CO} Management Services Private Limited will be that of a Contract of Service for a fixed period.
           By executing this letter of engagement neither do we offer you employment with {CO} Management Services
           Private Limited nor do you become an employee of {CO} Management Services Private Limited. Upon expiry or
           termination of the Work Assignment, your employment with {CO} Management Services Private Limited shall
